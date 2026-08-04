@@ -1,0 +1,4 @@
+interface:
+  display_name: "Loops Core Utilities"
+  short_description: "Build safe Loops LMX integrations"
+  default_prompt: "Use $loops-core-utils to integrate @onderwijsin/loops-core safely."
