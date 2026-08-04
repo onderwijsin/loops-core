@@ -1,0 +1,25 @@
+{
+  "eventName": "campaign.email.sent",
+  "eventTime": 1785855627,
+  "webhookSchemaVersion": "1.0.0",
+  "campaignId": "campaign-anonymized",
+  "contactIdentity": {
+    "id": "contact-anonymized",
+    "email": "person@example.test",
+    "userId": "user-anonymized"
+  },
+  "campaignName": "Test campaign (Copy) (Copy) (Copy) (Copy)",
+  "email": {
+    "id": "email-anonymized",
+    "emailMessageId": "message-anonymized",
+    "subject": "Test campaign 3"
+  },
+  "mailingLists": [
+    {
+      "id": "list-anonymized",
+      "name": "Candidates",
+      "description": null,
+      "isPublic": true
+    }
+  ]
+}

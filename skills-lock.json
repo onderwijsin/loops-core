@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "skills": {
+    "code-review": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/code-review/SKILL.md",
+      "computedHash": "31d149a480eaa68c11e32f5ee77f0fd0b98a906834d531d881d502352edd0b8e"
+    },
+    "create-docs": {
+      "source": "docus.dev",
+      "sourceType": "well-known",
+      "computedHash": "3c6d7d6f6084ff5ebbd59fe8b348f99bced0d303da45cd61069a0f6dac8199f6"
+    },
+    "edit-article": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/personal/edit-article/SKILL.md",
+      "computedHash": "cb2a13b2acb6c8a0706eb3a973a2681f30fd74c00784c74ceaa98e12eb2b2fc3"
+    },
+    "loops-api": {
+      "source": "loops-so/skills",
+      "sourceType": "github",
+      "skillPath": "skills/loops-api/SKILL.md",
+      "computedHash": "f93d7ca6b897ce5c53e75319cfe3bed2bd5f776e43784a08dbcf8ab0dc1416d1"
+    },
+    "loops-cli": {
+      "source": "loops-so/skills",
+      "sourceType": "github",
+      "skillPath": "skills/loops-cli/SKILL.md",
+      "computedHash": "a4c2b339ec9cbe1aa68dea9f1dc2145d7569862b452518d38bb00dbcfc599ab1"
+    },
+    "loops-email-sending-best-practices": {
+      "source": "loops-so/skills",
+      "sourceType": "github",
+      "skillPath": "skills/loops-email-sending-best-practices/SKILL.md",
+      "computedHash": "143a669542b450d63dfd289a6a013c89462c1b74b01c1089424e7768fce5087a"
+    },
+    "loops-lmx": {
+      "source": "loops-so/skills",
+      "sourceType": "github",
+      "skillPath": "skills/loops-lmx/SKILL.md",
+      "computedHash": "70f5e871fa89762c7e70641c8957a58b2ec31c6e781a1cbde59e684e2796210c"
+    },
+    "pnpm": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/pnpm/SKILL.md",
+      "computedHash": "2ec08c851c6f901d4ed72c21b826416ed074a487db65662b36249418afd728bf"
+    },
+    "review-docs": {
+      "source": "docus.dev",
+      "sourceType": "well-known",
+      "computedHash": "016eca30a60e4d1ec38cf162753d47e52dbb543a931f77f8050d4bc4f6bc5e6b"
+    },
+    "vitest": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vitest/SKILL.md",
+      "computedHash": "943d436114c677802426741980146c07560bf375297666b03062444f4b98a785"
+    },
+    "writing-great-skills": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/writing-great-skills/SKILL.md",
+      "computedHash": "4deb21855fb4deeeb1b8217b041faff003fd0c915d24a22f636851c520bc9c5c"
+    },
+    "zod": {
+      "source": "anivar/zod-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "8f746325460dba852bd07b63d3afd74af86fcf267def6dc509694882a58d91ee"
+    }
+  }
+}

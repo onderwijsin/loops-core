@@ -1,0 +1,5 @@
+{
+  "id": "component-logo",
+  "name": "Organisation logo",
+  "lmx": "<Image src=\"https://images.example.test/logo.png\" alt=\"Logo van voorbeeldorganisatie\" href=\"https://example.test\" width=\"90\" />"
+}

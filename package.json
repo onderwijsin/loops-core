@@ -1,0 +1,70 @@
+{
+  "name": "@onderwijsin/loops-core",
+  "version": "0.0.0",
+  "description": "Portable Loops Email Campaign and LMX utilities.",
+  "homepage": "https://github.com/onderwijsin/loops-core#readme",
+  "bugs": "https://github.com/onderwijsin/loops-core/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onderwijsin/loops-core.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsup",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "pnpm fmt:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "release": "semantic-release",
+    "postinstall": "husky || true"
+  },
+  "dependencies": {
+    "ofetch": "1.5.1",
+    "ufo": "1.6.4",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.1",
+    "@commitlint/config-conventional": "21.2.0",
+    "@semantic-release/changelog": "7.0.0",
+    "@semantic-release/git": "11.0.1",
+    "husky": "9.1.7",
+    "lint-staged": "17.3.0",
+    "oxfmt": "0.62.0",
+    "oxlint": "1.77.0",
+    "semantic-release": "25.0.8",
+    "tsup": "8.5.1",
+    "typescript": "6.0.3",
+    "vitest": "4.0.18"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.13.1",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@11.13.1"
+}

@@ -1,0 +1,71 @@
+<Style themeId="theme-trainees" />
+<Component componentId="component-logo" paddingTop="4" paddingBottom="4">
+  <Image src="https://images.example.test/logo.png" alt="Logo van voorbeeldorganisatie" href="https://example.test" width="90" />
+</Component>
+<Paragraph></Paragraph>
+<Paragraph>Hoi {contact.firstName},</Paragraph>
+<Paragraph></Paragraph>
+<H1>Heading 1</H1>
+<Paragraph></Paragraph>
+<H2>Heading 2</H2>
+<Paragraph></Paragraph>
+<H3>Heading 3</H3>
+<Paragraph></Paragraph>
+<Paragraph>Een reguliere paragraaf. Of met markup: <Strong>bold</Strong>, <Em>italic</Em>, <Underline>underline</Underline>, <Code>code</Code>, <Em><Strong>bold italic</Strong></Em>.</Paragraph>
+<Paragraph></Paragraph>
+<Paragraph>Paragraaf met <Link href="https://example.test"><Underline>link</Underline></Link></Paragraph>
+<Paragraph></Paragraph>
+<Paragraph blockColor="#c2c2c2" blockBorderRadius="6" paddingTop="8" paddingRight="10" paddingBottom="8" paddingLeft="10">Paragraaf met styling (background, padding, radius).</Paragraph>
+<Paragraph></Paragraph>
+<Paragraph lineHeight="250"><Text textColor="#ff0000">Paragraaf met andere text kleur en line height</Text></Paragraph>
+<UnorderedList>
+  <ListItem>bullet list</ListItem>
+  <ListItem></ListItem>
+</UnorderedList>
+<Paragraph></Paragraph>
+<OrderedList>
+  <ListItem>Numbered list</ListItem>
+</OrderedList>
+<OrderedList>
+  <ListItem></ListItem>
+</OrderedList>
+<Paragraph></Paragraph>
+<CodeBlock>Code block</CodeBlock>
+<Paragraph></Paragraph>
+<Paragraph align="center">Text center</Paragraph>
+<Paragraph></Paragraph>
+<Paragraph align="right">Text right</Paragraph>
+<Paragraph></Paragraph>
+<Button href="https://example.test">A button</Button>
+<Paragraph></Paragraph>
+<Button href="https://example.test?utm_source={contact.userId}">A button with conditional value</Button>
+<Paragraph></Paragraph>
+<Divider width="100" />
+<Icons gap="16" size="32">
+  <Icon name="square-facebook" href="https://facebook.com" />
+  <Icon name="square-x-twitter" href="x.com" />
+  <Icon name="linkedin" href="linkedin.com" />
+</Icons>
+<Paragraph></Paragraph>
+<Columns>
+  <ColumnItem>
+    <Paragraph>Equal</Paragraph>
+  </ColumnItem>
+  <ColumnItem>
+    <Paragraph>columns</Paragraph>
+  </ColumnItem>
+</Columns>
+<Paragraph></Paragraph>
+<Columns gap="122" widths="37,63">
+  <ColumnItem>
+    <Paragraph>Custom size</Paragraph>
+  </ColumnItem>
+  <ColumnItem>
+    <Paragraph>Columns</Paragraph>
+  </ColumnItem>
+</Columns>
+<Paragraph></Paragraph>
+<Section href="https://example.test/{contact.userId}">
+  <Paragraph>A section</Paragraph>
+  <Button href="https://example.test">With a button</Button>
+</Section>

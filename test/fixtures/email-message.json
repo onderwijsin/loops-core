@@ -1,0 +1,18 @@
+{
+  "id": "message-anonymized",
+  "campaignId": "campaign-anonymized",
+  "subject": "Volledig bericht",
+  "previewText": "Een email campagne met praktisch alle mogelijke nodes",
+  "fromName": "Voorbeeldorganisatie",
+  "fromEmail": "mail",
+  "replyToEmail": "info@example.test",
+  "languageCode": "en",
+  "emailFormat": "styled",
+  "lmx": "<Style themeId=\"theme-trainees\" />\n<Component componentId=\"component-logo\" paddingTop=\"4\" paddingBottom=\"4\">\n  <Image src=\"https://images.example.test/logo.png\" alt=\"Logo van voorbeeldorganisatie\" href=\"https://example.test\" width=\"90\" />\n</Component>\n<Paragraph></Paragraph>\n<Paragraph>Hoi {contact.firstName},</Paragraph>\n<Paragraph></Paragraph>\n<H1>Heading 1</H1>\n<Paragraph></Paragraph>\n<H2>Heading 2</H2>\n<Paragraph></Paragraph>\n<H3>Heading 3</H3>\n<Paragraph></Paragraph>\n<Paragraph>Een reguliere paragraaf. Of met markup: <Strong>bold</Strong>, <Em>italic</Em>, <Underline>underline</Underline>, <Code>code</Code>, <Em><Strong>bold italic</Strong></Em>.</Paragraph>\n<Paragraph></Paragraph>\n<Paragraph>Paragraaf met <Link href=\"https://example.test\"><Underline>link</Underline></Link></Paragraph>\n<Paragraph></Paragraph>\n<Paragraph blockColor=\"#c2c2c2\" blockBorderRadius=\"6\" paddingTop=\"8\" paddingRight=\"10\" paddingBottom=\"8\" paddingLeft=\"10\">Paragraaf met styling (background, padding, radius).</Paragraph>\n<Paragraph></Paragraph>\n<Paragraph lineHeight=\"250\"><Text textColor=\"#ff0000\">Paragraaf met andere text kleur en line height</Text></Paragraph>\n<UnorderedList>\n  <ListItem>bullet list</ListItem>\n  <ListItem></ListItem>\n</UnorderedList>\n<Paragraph></Paragraph>\n<OrderedList>\n  <ListItem>Numbered list</ListItem>\n</OrderedList>\n<OrderedList>\n  <ListItem></ListItem>\n</OrderedList>\n<Paragraph></Paragraph>\n<CodeBlock>Code block</CodeBlock>\n<Paragraph></Paragraph>\n<Paragraph align=\"center\">Text center</Paragraph>\n<Paragraph></Paragraph>\n<Paragraph align=\"right\">Text right</Paragraph>\n<Paragraph></Paragraph>\n<Button href=\"https://example.test\">A button</Button>\n<Paragraph></Paragraph>\n<Button href=\"https://example.test?utm_source={contact.userId}\">A button with conditional value</Button>\n<Paragraph></Paragraph>\n<Divider width=\"100\" />\n<Icons gap=\"16\" size=\"32\">\n  <Icon name=\"square-facebook\" href=\"https://facebook.com\" />\n  <Icon name=\"square-x-twitter\" href=\"x.com\" />\n  <Icon name=\"linkedin\" href=\"linkedin.com\" />\n</Icons>\n<Paragraph></Paragraph>\n<Columns>\n  <ColumnItem>\n    <Paragraph>Equal</Paragraph>\n  </ColumnItem>\n  <ColumnItem>\n    <Paragraph>columns</Paragraph>\n  </ColumnItem>\n</Columns>\n<Paragraph></Paragraph>\n<Columns gap=\"122\" widths=\"37,63\">\n  <ColumnItem>\n    <Paragraph>Custom size</Paragraph>\n  </ColumnItem>\n  <ColumnItem>\n    <Paragraph>Columns</Paragraph>\n  </ColumnItem>\n</Columns>\n<Paragraph></Paragraph>\n<Section href=\"https://example.test/{contact.userId}\">\n  <Paragraph>A section</Paragraph>\n  <Button href=\"https://example.test\">With a button</Button>\n</Section>\n",
+  "contentRevisionId": "revision-anonymized",
+  "updatedAt": "2026-08-04T21:29:23.563Z",
+  "contactPropertiesFallbacks": {
+    "userId": "undefined",
+    "firstName": "jouw naam"
+  }
+}
