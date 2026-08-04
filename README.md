@@ -123,7 +123,8 @@ Use Conventional Commits (`fix:`, `feat:`, and breaking changes). Pull requests 
 linting, type checking, tests, build, and commit validation. Successful `main` releases use
 semantic-release and npm Trusted Publishing with provenance—no long-lived npm token is used.
 Each release updates `CHANGELOG.md` and commits the generated changelog and `package.json` version
-back to `main` with `[skip ci]`.
+back to `main` with `[skip ci]`. Releases are manually dispatched from `main`; the GitHub release
+app creates the protected-branch commit, tag, and GitHub Release.
 
 ## License and support
 
