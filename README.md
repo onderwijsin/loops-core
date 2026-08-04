@@ -19,6 +19,10 @@ uses Web Platform APIs only.
 pnpm add @onderwijsin/loops-core
 ```
 
+```sh
+npx skills add onderwijsin/loops-core
+```
+
 ## Parse LMX
 
 ```ts

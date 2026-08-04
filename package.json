@@ -59,12 +59,5 @@
     "typescript": "6.0.3",
     "vitest": "4.0.18"
   },
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "11.13.1",
-      "onFail": "download"
-    }
-  },
   "packageManager": "pnpm@11.13.1"
 }
