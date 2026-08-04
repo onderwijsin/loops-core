@@ -1,6 +1,6 @@
 # Public API
 
-Import only from `@onderwijsin/loops-core`; v1 has no subpath exports.
+Install with `pnpm add @onderwijsin/loops-core` and import only from `@onderwijsin/loops-core`; v1 has no subpath exports.
 
 ## LMX data and parsing
 
@@ -60,7 +60,7 @@ Renderer helpers:
 - `getLoopsLmxPixels(value, minimum, maximum)` allows bounded decimal integers.
 - `getLoopsLmxColumnsLayout(widths, gap, columnCount)` validates percentages, a 0–150 gap, and safely falls back to equal columns.
 
-`Style` is metadata: neither visible nor unsupported. Never turn the output into framework-specific styles inside core.
+`Style` is metadata: neither visible nor unsupported. Do not use it as arbitrary CSS.
 
 ## Webhooks
 
