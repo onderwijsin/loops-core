@@ -19,5 +19,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check
-      - run: pnpm dlx commitlint --from "${{ github.event.pull_request.base.sha || github.event.before }}" --to "${{ github.sha }}"
+      - run: pnpm fmt:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build

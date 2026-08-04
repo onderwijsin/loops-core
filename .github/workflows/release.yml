@@ -1,8 +1,7 @@
 name: Release
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -10,13 +9,39 @@ permissions:
   pull-requests: write
   id-token: write
 
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
 jobs:
-  release:
+  preflight:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - name: Validate release branch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Releases can only run from main."
+            exit 1
+          fi
+
+  release:
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+      - name: Checkout with release app token
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
       - uses: pnpm/action-setup@v6
         with:
           version: 11.13.1
@@ -25,8 +50,9 @@ jobs:
           node-version: 24
           cache: pnpm
           registry-url: https://registry.npmjs.org
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm check
-      - run: pnpm release
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm check
+      - run: corepack pnpm release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
