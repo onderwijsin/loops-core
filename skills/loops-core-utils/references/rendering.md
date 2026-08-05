@@ -1,6 +1,6 @@
 # Rendering LMX safely
 
-`@onderwijsin/loops-core` returns a JSON-serializable AST; it does not render HTML, Vue, React, or styles. The consuming application maps AST nodes to its own templates/components.
+`@onderwijsin/loops-core` returns a JSON-serializable AST and framework-neutral rendering data; it does not render HTML or framework components. The consuming application maps AST nodes to its own templates/components.
 
 ## Safe recursion pattern
 
@@ -25,6 +25,22 @@ function renderNode(node: LoopsLmxNode, variables: LoopsLmxVariables) {
 ```
 
 Use framework-native text interpolation rather than an HTML injection API. Adapt the `variables` type to `LoopsLmxVariables` in application code.
+
+## Inline styles
+
+Use `applyInlineStyles` when a renderer supports inline presentation styles:
+
+```ts
+import { applyInlineStyles } from "@onderwijsin/loops-core";
+
+const style = applyInlineStyles(node.attributes, stylesEnabled);
+```
+
+The returned `Record<string, string>` is framework-neutral and safe to adapt to a framework style
+binding. It accepts only documented hex colors, bounded integer pixel values, percentage line
+heights, and `left`/`center`/`right` alignment. Unknown and malformed attributes are omitted. The
+`enabled` argument defaults to `true`; pass `false` when the renderer's style policy disables inline
+styles. Never use `Style` metadata as an arbitrary CSS source.
 
 ## URLs and dynamic attributes
 

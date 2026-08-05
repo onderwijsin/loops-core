@@ -1,11 +1,21 @@
 import type { LoopsLmxElement, LoopsLmxNode } from "./schemas/ast";
 
-const inlineElements = new Set(["Strong", "Em", "Underline", "Strike", "Code", "Text", "Link"]);
+const inlineElements = new Set([
+  "Strong",
+  "Em",
+  "Underline",
+  "Strike",
+  "Code",
+  "Text",
+  "Link",
+  "Br"
+]);
 const blockElements = new Set([
   "H1",
   "H2",
   "H3",
   "Paragraph",
+  "Quote",
   "UnorderedList",
   "OrderedList",
   "ListItem",
@@ -20,7 +30,6 @@ const blockElements = new Set([
   "Columns",
   "ColumnItem"
 ]);
-
 /**
  * Returns whether an element belongs to the safe shared renderer subset.
  *
