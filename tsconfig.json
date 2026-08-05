@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["src", "test", "tsup.config.ts"]
+  "include": ["src", "__tests__", "tsup.config.ts"]
 }
