@@ -1,5 +1,5 @@
 import type { LoopsLmxAst, LoopsLmxElement, LoopsLmxNode } from "./ast";
-import { createLoopsEmailCampaignClient } from "./client";
+import { ofetch } from "ofetch";
 
 /** A recoverable parsing or component-expansion event. */
 export type LoopsLmxDiagnostic = {
@@ -17,14 +17,14 @@ export type LoopsLmxDiagnostic = {
   tagName?: string;
 };
 
-/** Options for resilient LMX parsing and optional component expansion. */
+/** Options for resilient LMX parsing and optional server-side component expansion. */
 export type ParseLoopsLmxOptions = {
   apiKey?: string;
   maxComponentDepth?: number;
   onDiagnostic?: (diagnostic: LoopsLmxDiagnostic) => void;
 };
 
-type GetComponent = ReturnType<typeof createLoopsEmailCampaignClient>["getComponent"];
+type GetComponent = (componentId: string) => Promise<{ lmx: string } | undefined>;
 
 const defaultMaxComponentDepth = 8;
 const voidElements = new Set(["Image", "Divider", "Br", "Icon", "Style"]);
@@ -48,11 +48,43 @@ export async function parseLoopsLmx(
 ): Promise<LoopsLmxAst> {
   const ast = parseLmx(lmx, options);
   const getComponent = options.apiKey
-    ? createLoopsEmailCampaignClient(options.apiKey).getComponent
+    ? (componentId: string) => fetchComponent(componentId, options.apiKey!)
     : undefined;
   return getComponent
     ? expandAst(ast, new Set(), 0, normalizedMaxDepth(options), options, getComponent)
     : ast;
+}
+
+/**
+ * Retrieves only the LMX needed for parser component expansion.
+ *
+ * This deliberately is not exported as a general Loops API client. Component transport is an
+ * opt-in parser capability and only runs after the caller supplies an API key.
+ *
+ * @param componentId - Loops component identifier.
+ * @param apiKey - Loops API key sent as a bearer token.
+ * @returns The component LMX, or `undefined` for an invalid response.
+ */
+async function fetchComponent(
+  componentId: string,
+  apiKey: string
+): Promise<{ lmx: string } | undefined> {
+  try {
+    const response = await ofetch<unknown>(`/components/${encodeURIComponent(componentId)}`, {
+      baseURL: "https://app.loops.so/api/v1",
+      headers: { Authorization: `Bearer ${apiKey}` },
+      retry: 0
+    });
+    if (
+      !response ||
+      typeof response !== "object" ||
+      typeof (response as { lmx?: unknown }).lmx !== "string"
+    )
+      return undefined;
+    return { lmx: (response as { lmx: string }).lmx };
+  } catch {
+    return undefined;
+  }
 }
 
 /**

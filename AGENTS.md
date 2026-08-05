@@ -89,6 +89,7 @@ agent **MUST** provide a summary of the work done, including:
 - What changed
 - Impact on contracts and behavior
 - Open risks or follow-up work
+- A ready to copy commit message following the conventional commit rules (eg `'feat(core): add new utility'`)
 
 It is the responsibility of the human collaborator to review, approve, and commit the changes.
 

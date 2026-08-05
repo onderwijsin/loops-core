@@ -1,5 +1,30 @@
 import { z } from "zod";
 
+const baseWebhookSchema = z.object({
+  eventName: z.string(),
+  eventTime: z.number().int().nonnegative(),
+  webhookSchemaVersion: z.literal("1.0.0")
+});
+
+const contactIdentitySchema = z.strictObject({
+  id: z.string(),
+  email: z.email(),
+  userId: z.string().nullable()
+});
+
+const contactSchema = z.object({
+  id: z.string(),
+  email: z.email(),
+  firstName: z.string().nullable(),
+  lastName: z.string().nullable(),
+  source: z.string(),
+  subscribed: z.boolean(),
+  userGroup: z.string(),
+  userId: z.string().nullable(),
+  mailingLists: z.record(z.string(), z.boolean()),
+  optInStatus: z.enum(["accepted"]).nullable()
+});
+
 const mailingListSchema = z.strictObject({
   id: z.string().min(1),
   name: z.string(),
@@ -7,86 +32,85 @@ const mailingListSchema = z.strictObject({
   isPublic: z.boolean()
 });
 
-/** Validates the shared fields of a Loops webhook event. */
-export const loopsWebhookEnvelopeSchema = z.object({
-  eventName: z.string(),
-  eventTime: z.number().int().nonnegative(),
-  webhookSchemaVersion: z.literal("1.0.0")
+const emailSchema = z.strictObject({
+  id: z.string().min(1),
+  emailMessageId: z.string().min(1),
+  subject: z.string()
 });
 
-/** Validates a campaign delivery webhook at the external boundary. */
-export const loopsCampaignWebhookSchema = z.strictObject({
-  eventName: z.literal("campaign.email.sent"),
-  eventTime: z.number().int().nonnegative(),
-  webhookSchemaVersion: z.literal("1.0.0"),
-  contactIdentity: z
-    .strictObject({ id: z.string(), email: z.email(), userId: z.string().nullable() })
-    .optional(),
-  campaignId: z.string().min(1),
-  campaignName: z.string(),
-  email: z.strictObject({
-    id: z.string().min(1),
-    emailMessageId: z.string().min(1),
-    subject: z.string()
+const contactEventSchema = (eventName: string) =>
+  baseWebhookSchema.extend({
+    eventName: z.literal(eventName),
+    contactIdentity: contactIdentitySchema
+  });
+
+const emailEventSchema = (eventName: string) =>
+  baseWebhookSchema.extend({
+    eventName: z.literal(eventName),
+    sourceType: z.enum(["campaign", "loop", "transactional"]),
+    campaignId: z.string().min(1).optional(),
+    loopId: z.string().min(1).optional(),
+    transactionalId: z.string().min(1).optional(),
+    email: emailSchema,
+    contactIdentity: contactIdentitySchema
+  });
+
+/** Validates the shared fields of any Loops webhook event. */
+export const loopsWebhookEnvelopeSchema = baseWebhookSchema;
+
+/** Validates every documented Loops webhook event shape. */
+export const loopsWebhookSchema = z.discriminatedUnion("eventName", [
+  baseWebhookSchema.extend({
+    eventName: z.literal("contact.created"),
+    contactIdentity: contactIdentitySchema,
+    contact: contactSchema
   }),
-  mailingLists: z.array(mailingListSchema).optional()
-});
-
-/** Validates and normalizes an Email Campaign API email-message response. */
-export const loopsEmailMessageSchema = z
-  .strictObject({
-    id: z.string().min(1),
-    campaignId: z.string().optional(),
-    transactionalId: z.string().optional(),
-    subject: z.string(),
-    previewText: z.string(),
-    fromName: z.string(),
-    fromEmail: z.string(),
-    replyToEmail: z.string(),
-    ccEmail: z.string().optional(),
-    bccEmail: z.string().optional(),
-    languageCode: z.string().optional(),
-    emailFormat: z.enum(["styled", "plain"]),
-    lmx: z.string(),
-    contentRevisionId: z.string().nullable(),
-    updatedAt: z.iso.datetime(),
-    contactPropertiesFallbacks: z.record(z.string(), z.string()).optional(),
-    eventPropertiesFallbacks: z.record(z.string(), z.string()).optional(),
-    dataVariablesFallbacks: z.record(z.string(), z.string()).optional(),
-    warnings: z
-      .array(
-        z.object({
-          rule: z.string(),
-          severity: z.literal("warning"),
-          message: z.string(),
-          path: z.string().optional()
-        })
-      )
-      .optional()
+  contactEventSchema("contact.unsubscribed"),
+  contactEventSchema("contact.deleted"),
+  contactEventSchema("contact.mailingList.subscribed").extend({ mailingList: mailingListSchema }),
+  contactEventSchema("contact.mailingList.unsubscribed").extend({ mailingList: mailingListSchema }),
+  baseWebhookSchema.extend({
+    eventName: z.literal("campaign.email.sent"),
+    contactIdentity: contactIdentitySchema,
+    campaignId: z.string().min(1),
+    campaignName: z.string(),
+    email: emailSchema,
+    mailingLists: z.array(mailingListSchema).optional()
+  }),
+  baseWebhookSchema.extend({
+    eventName: z.literal("loop.email.sent"),
+    contactIdentity: contactIdentitySchema,
+    loopId: z.string().min(1),
+    loopName: z.string(),
+    email: emailSchema,
+    mailingLists: z.array(mailingListSchema).optional()
+  }),
+  baseWebhookSchema.extend({
+    eventName: z.literal("transactional.email.sent"),
+    contactIdentity: contactIdentitySchema,
+    transactionalId: z.string().min(1),
+    email: emailSchema
+  }),
+  ...[
+    "email.delivered",
+    "email.softBounced",
+    "email.hardBounced",
+    "email.opened",
+    "email.clicked",
+    "email.unsubscribed",
+    "email.resubscribed",
+    "email.spamReported"
+  ].map((eventName) => emailEventSchema(eventName)),
+  baseWebhookSchema.extend({
+    eventName: z.literal("testing.testEvent"),
+    message: z.string()
   })
-  .transform((message) => ({
-    campaignId: message.campaignId,
-    subject: message.subject,
-    previewText: message.previewText,
-    fromName: message.fromName,
-    fromEmail: message.fromEmail,
-    replyToEmail: message.replyToEmail,
-    languageCode: message.languageCode ?? null,
-    emailFormat: message.emailFormat,
-    lmx: message.lmx,
-    updatedAt: new Date(message.updatedAt)
-  }));
+]);
 
-/** Validates and normalizes a reusable LMX component response. */
-export const loopsComponentSchema = z
-  .strictObject({ id: z.string().min(1), name: z.string(), lmx: z.string() })
-  .transform(({ id, lmx }) => ({ componentId: id, lmx }));
+/** Alias emphasizing that this is the event union rather than just its envelope. */
+export const loopsWebhookEventSchema = loopsWebhookSchema;
 
-/** A validated campaign delivery event. */
-export type LoopsCampaignWebhook = z.infer<typeof loopsCampaignWebhookSchema>;
-/** A normalized Loops email-message response. */
-export type LoopsEmailMessage = z.infer<typeof loopsEmailMessageSchema>;
-/** A normalized reusable LMX component response. */
-export type LoopsComponent = z.infer<typeof loopsComponentSchema>;
+/** A validated Loops webhook event. */
+export type LoopsWebhook = z.infer<typeof loopsWebhookSchema>;
 /** A validated generic Loops webhook envelope. */
 export type LoopsWebhookEnvelope = z.infer<typeof loopsWebhookEnvelopeSchema>;

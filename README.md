@@ -1,23 +1,23 @@
-# @onderwijsin/loops-core
+# Loops Core Utilities
 
-Use this package to safely receive, retrieve, parse, and render Loops campaign content in any
-application. It provides the portable contract between Loops and your app, so a webapp campaign archive, a
-webhook consumer, or a backend can use the same campaign data without inheriting framework
-or presentation code.
+This package provides several standalone utilities for working with [Loops](https://loops.so/docs). It can be used in any Javascript runtime and it is framework agnostic.
 
-It owns safe LMX parsing, component expansion, rendering interpretation, webhook verification, and
-the Email Campaign API contract. It does not provide HTTP handlers, persistence, queues, campaign
-policy, Vue components, or styling; use `@onderwijsin/nuxt-loops-renderer` for the presentation
-layer.
+## ✨ Features
 
-It runs on Node.js, Nuxt/Nitro, Cloudflare Workers, and compatible browser contexts. Runtime code
-uses Web Platform APIs only.
+- Safe LMX parsing as AST and component expansion
+- Renderer utilities for safe HTML and component mapping
+- Webhook signature verification and validation schemas
+- Variables and URL resolution
 
-## Install
+This package is not a Loops Client (use [the official SDK](https://github.com/loops-so/loops-js) for that). This package also does not include a presentation layer to the parsed LMX (use `@onderwijsin/nuxt-loops-renderer` for that).
+
+## 📥 Install
 
 ```sh
 pnpm add @onderwijsin/loops-core
 ```
+
+To add the loops-core skill:
 
 ```sh
 npx skills add onderwijsin/loops-core
@@ -41,10 +41,10 @@ const content = await parseLoopsLmx('<Component componentId="footer" />', {
 });
 ```
 
-When `apiKey` is supplied, components load internally through the Loops API. Keep this call on a
-trusted server because the API key must never reach the browser. Cycles, unavailable components,
-and depth-limit failures retain the original component node and its local children; they do not
-make the full document fail.
+When `apiKey` is supplied, the parser fetches only the referenced components through the Loops API.
+Keep this call on a trusted server because the API key must never reach the browser. Without an API
+key, parsing never performs network I/O. Cycles, unavailable components, and depth-limit failures
+retain the original component node and its local children; they do not make the full document fail.
 
 ## Renderer utilities
 
@@ -84,12 +84,12 @@ Only `contact.*` and `data.*` placeholders resolve. Links accept `https`, `http`
 `tel`; images accept `https` and `http`. Relative, protocol-relative, data, JavaScript, and other
 unsafe URLs return `null`.
 
-## Verify webhooks
+## Verify and validate webhooks
 
 Verify the exact raw body before parsing JSON. Your framework adapter extracts headers.
 
 ```ts
-import { verifyLoopsWebhookSignature } from "@onderwijsin/loops-core";
+import { loopsWebhookSchema, verifyLoopsWebhookSignature } from "@onderwijsin/loops-core";
 
 const isValid = await verifyLoopsWebhookSignature(
   rawBody,
@@ -102,24 +102,19 @@ const isValid = await verifyLoopsWebhookSignature(
   { timestampToleranceSeconds: 300 }
 );
 
-if (isValid) JSON.parse(rawBody);
+if (isValid) {
+  const event = loopsWebhookSchema.parse(JSON.parse(rawBody));
+  // Route on event.eventName.
+}
 ```
 
 Invalid headers, secrets, timestamps, or signatures return `false`; they never throw. The verifier
 supports multiple versioned signatures and uses constant-time comparison for candidate signatures.
 
-## Email Campaign API client
-
-```ts
-import { createLoopsEmailCampaignClient } from "@onderwijsin/loops-core";
-
-const client = createLoopsEmailCampaignClient(process.env.LOOPS_API_KEY!);
-const message = await client.getEmailMessage("email-message-id");
-const component = await client.getComponent("component-id");
-```
-
-Successful responses are validated against exported Zod schemas. Transport, status, retries,
-caching, credentials storage, and persistence remain application responsibilities.
+The exported webhook schema covers contact events, campaign/workflow/transactional send events,
+delivery and engagement events, and `testing.testEvent`. The package does not provide an email
+client or campaign schemas; use the official [Loops SDK](https://github.com/loops-so/loops-js) for
+API access and campaign types.
 
 ## Contributing and releases
 

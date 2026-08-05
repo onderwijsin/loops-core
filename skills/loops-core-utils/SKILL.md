@@ -1,6 +1,6 @@
 ---
 name: loops-core-utils
-description: Integrate @onderwijsin/loops-core into an application or backend. Use when consuming Loops Email Campaign API data, receiving signed Loops webhooks, parsing or expanding LMX, rendering LMX safely, or resolving LMX variables and URLs in a Nuxt app, Cloudflare Worker, browser renderer, or other JavaScript/TypeScript consumer.
+description: Use @onderwijsin/loops-core as a framework-neutral utility package for parsing LMX, validating ASTs and webhooks, rendering safely, and resolving LMX variables and URLs.
 ---
 
 # Loops Core Utilities
@@ -9,12 +9,11 @@ Use this skill only to consume `@onderwijsin/loops-core`. Treat the package as a
 
 ## Choose an integration
 
-| Need                                 | Read                                               | Use                                           |
-| ------------------------------------ | -------------------------------------------------- | --------------------------------------------- |
-| Parse/store LMX or expand components | [references/api.md](references/api.md)             | `parseLoopsLmx`                               |
-| Build a safe renderer                | [references/rendering.md](references/rendering.md) | AST types, rendering helpers, variables, URLs |
-| Receive Loops webhooks               | [references/api.md](references/api.md)             | verification and webhook schemas              |
-| Retrieve campaigns/components        | [references/api.md](references/api.md)             | `createLoopsEmailCampaignClient`              |
+| Need                                            | Read                                               | Use                                           |
+| ----------------------------------------------- | -------------------------------------------------- | --------------------------------------------- |
+| Parse/store LMX or optionally expand components | [references/api.md](references/api.md)             | `parseLoopsLmx`                               |
+| Build a safe renderer                           | [references/rendering.md](references/rendering.md) | AST types, rendering helpers, variables, URLs |
+| Receive Loops webhooks                          | [references/api.md](references/api.md)             | verification and webhook schemas              |
 
 ## Consumer workflow
 
@@ -27,10 +26,10 @@ Use this skill only to consume `@onderwijsin/loops-core`. Treat the package as a
 ## Boundaries and safety
 
 - Verify the exact raw webhook body before parsing JSON.
-- Call component-expanding `parseLoopsLmx` with `apiKey` only from trusted server code. Omit it in browser code.
-- Do not pass custom fetch or component-loader callbacks: the package owns `ofetch` and component fetching.
+- Call component-expanding `parseLoopsLmx` with `apiKey` only from trusted server code. Omit it to guarantee parsing performs no network I/O.
+- Component expansion is the package's only opt-in transport exception; there is no exported Loops client.
 - Do not render LMX through `v-html`, `innerHTML`, or an equivalent raw HTML API.
 - Treat unsupported nodes as omitted presentation data, not as a parsing failure.
 - Do not use `Style` metadata as untrusted CSS.
 
-For framework-specific implementation, adapt these outputs to that framework rather than importing the framework into the package.
+For framework-specific implementation, adapt these outputs to that framework rather than importing the framework into the package. Use the official Loops SDK alongside this package when API client or campaign functionality is needed.

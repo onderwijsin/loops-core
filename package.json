@@ -1,7 +1,7 @@
 {
   "name": "@onderwijsin/loops-core",
   "version": "1.0.0",
-  "description": "Portable Loops Email Campaign and LMX utilities.",
+  "description": "Portable Loops LMX, rendering, URL, variable, and webhook utilities.",
   "homepage": "https://github.com/onderwijsin/loops-core#readme",
   "bugs": "https://github.com/onderwijsin/loops-core/issues",
   "license": "MIT",

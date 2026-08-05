@@ -1,24 +1,19 @@
 import { ofetch } from "ofetch";
 import { describe, expect, it, vi } from "vitest";
 import {
-  createLoopsEmailCampaignClient,
   getLoopsLmxColumnsLayout,
   getLoopsLmxImageWidth,
   getLoopsLmxPixels,
   hasRenderableLoopsLmxNodes,
   hasUnsupportedLoopsLmxNodes,
-  loopsCampaignWebhookSchema,
-  loopsEmailMessageSchema,
   loopsLmxAstSchema,
+  loopsWebhookSchema,
   parseLoopsLmx,
   resolveLoopsLmxVariables,
   resolveSafeLoopsLmxUrl,
   verifyLoopsWebhookSignature
 } from "../src/index";
 import realWorldComponent from "./fixtures/component.json";
-import realWorldEmailMessage from "./fixtures/email-message.json";
-import realWorldTheme from "./fixtures/theme.json";
-import realWorldCampaignWebhook from "./fixtures/campaign-webhook.json";
 import realWorldLmx from "./fixtures/campaign.lmx?raw";
 
 vi.mock("ofetch", () => ({ ofetch: vi.fn() }));
@@ -87,6 +82,12 @@ describe("LMX", () => {
     expect(limited.children[0]).toMatchObject({ name: "Component" });
   });
 
+  it("does not fetch components unless an API key is supplied", async () => {
+    vi.mocked(ofetch).mockReset();
+    await parseLoopsLmx('<Component componentId="footer" />');
+    expect(ofetch).not.toHaveBeenCalled();
+  });
+
   it("parses an anonymized real-world campaign and resolves its component", async () => {
     vi.mocked(ofetch).mockReset().mockResolvedValue(realWorldComponent);
     const ast = await parseLoopsLmx(realWorldLmx, {
@@ -94,7 +95,7 @@ describe("LMX", () => {
     });
     const serialized = JSON.stringify(ast);
     expect(serialized).toContain('"name":"Style"');
-    expect(serialized).toContain(`"themeId":"${realWorldTheme.id}"`);
+    expect(serialized).toContain('"themeId":"theme-trainees"');
     expect(serialized).toContain('"name":"Image"');
     expect(serialized).toContain('"href":"https://example.test/{contact.userId}"');
     expect(serialized).toContain('"href":"x.com"');
@@ -144,7 +145,7 @@ describe("safe rendering helpers", () => {
   });
 });
 
-describe("webhooks and API client", () => {
+describe("webhooks", () => {
   it("verifies valid and multiple webhook signatures", async () => {
     const secretBytes = "a signing secret";
     const secret = `whsec_${btoa(secretBytes)}`;
@@ -190,27 +191,85 @@ describe("webhooks and API client", () => {
     ).resolves.toBe(false);
   });
 
-  it("validates successful campaign API responses", async () => {
-    expect(loopsCampaignWebhookSchema.parse(realWorldCampaignWebhook).campaignId).toBe(
-      "campaign-anonymized"
-    );
-    vi.mocked(ofetch)
-      .mockReset()
-      .mockResolvedValueOnce(realWorldComponent)
-      .mockResolvedValueOnce(realWorldEmailMessage);
-    const client = createLoopsEmailCampaignClient("key");
-    await expect(client.getComponent("c/id")).resolves.toEqual({
-      componentId: "component-logo",
-      lmx: realWorldComponent.lmx
-    });
-    await expect(client.getEmailMessage("m")).resolves.toMatchObject({
-      subject: realWorldEmailMessage.subject
-    });
-    expect(loopsEmailMessageSchema.parse(realWorldEmailMessage).lmx).toBe(realWorldLmx);
-    expect(ofetch).toHaveBeenLastCalledWith("/email-messages/m", {
-      baseURL: "https://app.loops.so/api/v1",
-      headers: { Authorization: "Bearer key" },
-      retry: 0
-    });
+  it("validates every documented event family", () => {
+    const shared = { eventTime: 1, webhookSchemaVersion: "1.0.0" as const };
+    const identity = { id: "contact-1", email: "test@example.com", userId: null };
+    const email = { id: "email-1", emailMessageId: "message-1", subject: "Subject" };
+    const list = { id: "list-1", name: "List", description: null, isPublic: true };
+    const events = [
+      {
+        ...shared,
+        eventName: "contact.created",
+        contactIdentity: identity,
+        contact: {
+          ...identity,
+          firstName: null,
+          lastName: null,
+          source: "API",
+          subscribed: true,
+          userGroup: "",
+          mailingLists: { "list-1": true },
+          optInStatus: "accepted"
+        }
+      },
+      { ...shared, eventName: "contact.unsubscribed", contactIdentity: identity },
+      { ...shared, eventName: "contact.deleted", contactIdentity: identity },
+      {
+        ...shared,
+        eventName: "contact.mailingList.subscribed",
+        contactIdentity: identity,
+        mailingList: list
+      },
+      {
+        ...shared,
+        eventName: "contact.mailingList.unsubscribed",
+        contactIdentity: identity,
+        mailingList: list
+      },
+      {
+        ...shared,
+        eventName: "campaign.email.sent",
+        contactIdentity: identity,
+        campaignId: "campaign-1",
+        campaignName: "Campaign",
+        email,
+        mailingLists: [list]
+      },
+      {
+        ...shared,
+        eventName: "loop.email.sent",
+        contactIdentity: identity,
+        loopId: "loop-1",
+        loopName: "Workflow",
+        email
+      },
+      {
+        ...shared,
+        eventName: "transactional.email.sent",
+        contactIdentity: identity,
+        transactionalId: "transactional-1",
+        email
+      },
+      ...[
+        "email.delivered",
+        "email.softBounced",
+        "email.hardBounced",
+        "email.opened",
+        "email.clicked",
+        "email.unsubscribed",
+        "email.resubscribed",
+        "email.spamReported"
+      ].map((eventName) => ({
+        ...shared,
+        eventName,
+        sourceType: "campaign",
+        campaignId: "campaign-1",
+        contactIdentity: identity,
+        email
+      })),
+      { ...shared, eventName: "testing.testEvent", message: "test" }
+    ];
+    expect(events).toHaveLength(17);
+    for (const event of events) expect(loopsWebhookSchema.safeParse(event).success).toBe(true);
   });
 });
