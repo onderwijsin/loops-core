@@ -303,7 +303,7 @@ describe("LMX scenario matrix: security, limits, and parser-renderer contract", 
 
   it("keeps parser and renderer tag grammars aligned for documented visible elements", async () => {
     const source =
-      '<H1>h</H1><Paragraph>p</Paragraph><Quote>q</Quote><CodeBlock>c</CodeBlock><Button>b</Button><Image src="https://images.vialoops.com/a.png" /><Divider /><OrderedList><ListItem>i</ListItem></OrderedList><UnorderedList><ListItem>i</ListItem></UnorderedList><Columns><ColumnItem /><ColumnItem /></Columns><Component componentId="x" /><Icons><Icon name="github" /></Icons><Section><Paragraph>s</Paragraph></Section>';
+      '<H1>h</H1><Paragraph>p<Br />q</Paragraph><Quote>q</Quote><CodeBlock>c</CodeBlock><Button>b</Button><Image src="https://images.vialoops.com/a.png" /><Divider /><OrderedList><ListItem>i</ListItem></OrderedList><UnorderedList><ListItem>i</ListItem></UnorderedList><Columns><ColumnItem /><ColumnItem /></Columns><Component componentId="x" /><Icons><Icon name="github" /></Icons><Section><Paragraph>s</Paragraph></Section>';
     const { ast, diagnostics } = await diagnosticsFor(source);
     expect(diagnostics).toEqual([]);
     const elements = ast.children.filter(
@@ -313,7 +313,7 @@ describe("LMX scenario matrix: security, limits, and parser-renderer contract", 
       elements
         .filter((node) => node.type === "element" && !isRenderableLoopsLmxElement(node))
         .map((node) => node.type === "element" && node.name)
-    ).toEqual(["Quote"]);
-    expect(hasUnsupportedLoopsLmxNodes(ast.children)).toBe(true);
+    ).toEqual([]);
+    expect(hasUnsupportedLoopsLmxNodes(ast.children)).toBe(false);
   });
 });
