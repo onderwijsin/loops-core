@@ -37,8 +37,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "pnpm fmt:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
-    "release": "semantic-release",
-    "postinstall": "husky || true"
+    "release": "semantic-release"
   },
   "dependencies": {
     "ofetch": "1.5.1",
