@@ -1,3 +1,17 @@
+# [1.1.0](https://github.com/onderwijsin/loops-core/compare/v1.0.0...v1.1.0) (2026-08-05)
+
+
+### Bug Fixes
+
+* **lmx:** Align parser and renderer with LMX specification ([0a0af79](https://github.com/onderwijsin/loops-core/commit/0a0af797a2f441e1c6393c0cfbfac4e0117e73ee))
+* **lmx:** Validate official LMX semantics ([b550798](https://github.com/onderwijsin/loops-core/commit/b550798f7bf3cf628921dc8e5244f8ffb6af123e))
+* **webhooks:** Align schemas with current Loops documentation ([943220e](https://github.com/onderwijsin/loops-core/commit/943220e40eb911ab94d103367f9424288cc66525))
+
+
+### Features
+
+* **core:** Add conditional rule evaluator ([e399874](https://github.com/onderwijsin/loops-core/commit/e399874174c78be04c93f5720c011cb1afdb25bc))
+
 # 1.0.0 (2026-08-04)
 
 
