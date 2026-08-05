@@ -34,11 +34,14 @@ const content = await parseLoopsLmx("<Paragraph>Hello <Strong>world</Strong>.</P
 ```
 
 Unknown nodes and attributes remain in the AST. Comments are ignored and malformed content is
-recovered as far as possible. Component expansion has a finite default maximum depth of 8.
+recovered as far as possible. Semantic violations of the LMX specification are reported through
+`onDiagnostic` while the recoverable AST is retained. Component expansion has a finite default
+maximum depth of 8.
 
 ```ts
 const content = await parseLoopsLmx('<Component componentId="footer" />', {
   apiKey: process.env.LOOPS_API_KEY,
+  emailType: "campaign",
   onDiagnostic: (diagnostic) => reportDiagnostic(diagnostic)
 });
 ```
@@ -47,6 +50,9 @@ When `apiKey` is supplied, the parser fetches only the referenced components thr
 Keep this call on a trusted server because the API key must never reach the browser. Without an API
 key, parsing never performs network I/O. Cycles, unavailable components, and depth-limit failures
 retain the original component node and its local children; they do not make the full document fail.
+Explicit component children are retained as the documented local override and are not fetched.
+Set `emailType` to validate the variable namespaces permitted by campaign, workflow, or transactional
+LMX; without it, the parser validates variable syntax and placement but permits all documented namespaces.
 
 ## Renderer utilities
 
@@ -59,7 +65,8 @@ the safe parts of that interpretation:
   LMX from the stored AST.
 - `getLoopsLmxImageWidth`, `getLoopsLmxPixels`, and `getLoopsLmxColumnsLayout` validate the
   constrained dimensions and column data before a renderer turns them into attributes or styles.
-- `resolveLoopsLmxVariables` applies to both text and string attributes.
+- `resolveLoopsLmxVariables` applies to both text and string attributes and supports the
+  documented `contact`, `event`, and `data` namespaces.
   `resolveSafeLoopsLmxUrl` resolves variables in a URL attribute before validating it.
 
 ```ts
@@ -82,9 +89,9 @@ resolveLoopsLmxVariables("Hello {contact.firstName}", variables); // "Hello Ada"
 resolveSafeLoopsLmxUrl("https://example.test/{data.invoiceId}", variables, "link");
 ```
 
-Only `contact.*` and `data.*` placeholders resolve. Links accept `https`, `http`, `mailto`, and
-`tel`; images accept `https` and `http`. Relative, protocol-relative, data, JavaScript, and other
-unsafe URLs return `null`.
+Only explicit `contact.*`, `event.*`, and `data.*` placeholders resolve. Links accept `https`,
+`http`, `mailto`, and `tel`; images accept `https` and `http`. Relative, protocol-relative, data,
+JavaScript, and other unsafe URLs return `null`.
 
 ## Verify and validate webhooks
 
