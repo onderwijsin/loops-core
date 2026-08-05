@@ -22,3 +22,9 @@ fi
 if [ "${DISABLE_PRE_PUSH_LINT:-false}" != "true" ]; then
   pnpm lint
 fi
+
+
+# Run unit tests unless explicitly disabled
+if [ "${DISABLE_PRE_PUSH_UNIT_TESTS:-false}" != "true" ]; then
+  pnpm test
+fi
