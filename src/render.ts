@@ -30,7 +30,6 @@ const blockElements = new Set([
   "Columns",
   "ColumnItem"
 ]);
-
 /**
  * Returns whether an element belongs to the safe shared renderer subset.
  *

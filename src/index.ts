@@ -14,6 +14,8 @@ export {
   hasUnsupportedLoopsLmxNodes,
   isRenderableLoopsLmxElement
 } from "./render";
+export { applyInlineStyles } from "./styles";
+export type { LoopsLmxInlineStyles } from "./styles";
 export {
   loopsWebhookEnvelopeSchema,
   loopsWebhookEventSchema,

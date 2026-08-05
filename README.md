@@ -63,8 +63,8 @@ the safe parts of that interpretation:
 - `isRenderableLoopsLmxElement`, `hasRenderableLoopsLmxNodes`, and
   `getUnsupportedLoopsLmxNodes` identify the supported visible subset without discarding unknown
   LMX from the stored AST.
-- `getLoopsLmxImageWidth`, `getLoopsLmxPixels`, and `getLoopsLmxColumnsLayout` validate the
-  constrained dimensions and column data before a renderer turns them into attributes or styles.
+- `applyInlineStyles`, `getLoopsLmxImageWidth`, `getLoopsLmxPixels`, and `getLoopsLmxColumnsLayout`
+  validate constrained values before a renderer turns them into attributes or styles.
 - `resolveLoopsLmxVariables` applies to both text and string attributes and supports the
   documented `contact`, `event`, and `data` namespaces.
   `resolveSafeLoopsLmxUrl` resolves variables in a URL attribute before validating it.
@@ -78,6 +78,10 @@ if (href) renderLink(href, node.children);
 The URL helper normalizes bare hostnames such as `linkedin.com` to HTTPS and rejects relative,
 protocol-relative, executable, and unsupported URLs. Render text as text nodes rather than raw
 HTML; this package intentionally never provides an HTML rendering escape hatch.
+
+Use `applyInlineStyles` to map supported presentation attributes to a framework-neutral, validated
+CSS property object. It ignores unknown or malformed values and accepts an `enabled` flag for
+renderers that need to disable inline styling.
 
 ## Variables and URLs
 

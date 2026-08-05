@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyInlineStyles,
   getLoopsLmxColumnsLayout,
   getLoopsLmxImageWidth,
   getLoopsLmxPixels,
@@ -11,6 +12,49 @@ import {
 } from "../src/index";
 
 describe("LMX rendering helpers", () => {
+  it("converts safe presentation attributes to inline styles", () => {
+    expect(
+      applyInlineStyles({
+        blockColor: "#abc",
+        textColor: "#123456",
+        borderColor: "red",
+        blockBorderColor: "#000000",
+        blockBorderRadius: "6",
+        paddingTop: "8",
+        innerXPadding: "10",
+        innerYPadding: "12",
+        fontSize: "16",
+        lineHeight: "150",
+        align: "center",
+        onclick: "alert(1)"
+      })
+    ).toEqual({
+      backgroundColor: "#abc",
+      color: "#123456",
+      borderColor: "#000000",
+      borderRadius: "6px",
+      paddingTop: "8px",
+      paddingInline: "10px",
+      paddingBlock: "12px",
+      fontSize: "16px",
+      lineHeight: "150%",
+      textAlign: "center"
+    });
+  });
+
+  it("ignores unsafe values and can disable inline styles", () => {
+    expect(
+      applyInlineStyles({
+        blockColor: "url(javascript:alert(1))",
+        paddingTop: "1000",
+        fontSize: "2",
+        lineHeight: "301",
+        align: "middle"
+      })
+    ).toEqual({});
+    expect(applyInlineStyles({ blockColor: "#fff" }, false)).toEqual({});
+  });
+
   it("resolves supported variables and preserves unresolved variables", () => {
     const variables = {
       contact: { name: "Ada", missing: null },
