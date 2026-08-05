@@ -212,6 +212,36 @@ describe("safe rendering helpers", () => {
 
     expect(diagnostics).toEqual(expect.arrayContaining(["invalid_variable", "malformed_tag"]));
   });
+
+  it("matches documented variable, attribute, and placement rules", async () => {
+    const diagnostics: Array<{ code: string; message: string }> = [];
+    await parseLoopsLmx(
+      '<Paragraph><Strong>{contact.firstName}</Strong><Link href="https://loops.so" textColor="#000000">Docs</Link></Paragraph><Divider borderWidth="0" /><Unknown><Style /><Icon name="linkedin" /></Unknown>',
+      { onDiagnostic: (diagnostic) => diagnostics.push(diagnostic) }
+    );
+
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).not.toContain("invalid_variable");
+    expect(diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "unknown_attribute",
+          message: "Unknown Link attribute: textColor."
+        }),
+        expect.objectContaining({
+          code: "invalid_attribute",
+          message: "Invalid Divider attribute value: borderWidth."
+        }),
+        expect.objectContaining({
+          code: "invalid_structure",
+          message: "Style is only allowed at the LMX document top level."
+        }),
+        expect.objectContaining({
+          code: "invalid_structure",
+          message: "Icon is not valid inside Unknown."
+        })
+      ])
+    );
+  });
 });
 
 describe("webhooks", () => {
