@@ -29,6 +29,7 @@ Validate persisted AST before rendering with `loopsLmxAstSchema.safeParse`. The 
 
 ```ts
 import {
+  applyInlineStyles,
   getLoopsLmxColumnsLayout,
   getLoopsLmxImageWidth,
   hasUnsupportedLoopsLmxNodes,
@@ -45,6 +46,14 @@ const href = resolveSafeLoopsLmxUrl(
   { contact: { userId: "user-42" } },
   "link"
 ); // https://example.test/user-42
+
+const styles = applyInlineStyles({
+  blockColor: "#f5f5f5",
+  paddingTop: "16",
+  paddingBottom: "16",
+  align: "center"
+});
+// { backgroundColor: "#f5f5f5", paddingTop: "16px", paddingBottom: "16px", textAlign: "center" }
 ```
 
 Only `{contact.name}`, `{event.name}`, and `{data.name}` resolve. Missing and null values become empty strings; unknown syntax remains unchanged. Resolve every string attribute that a renderer uses. For URL attributes, call `resolveSafeLoopsLmxUrl` directly: it resolves variables first.
@@ -59,6 +68,7 @@ Renderer helpers:
 - `getLoopsLmxImageWidth(value)` allows integer 12–600.
 - `getLoopsLmxPixels(value, minimum, maximum)` allows bounded decimal integers.
 - `getLoopsLmxColumnsLayout(widths, gap, columnCount)` validates percentages, a 0–150 gap, and safely falls back to equal columns.
+- `applyInlineStyles(attributes, enabled?)` returns a framework-neutral object of validated CSS declarations. It maps documented colors, borders, padding, font size, line height, and alignment; unknown or malformed values are omitted. Set `enabled` to `false` to return an empty object.
 
 `Style` is metadata: neither visible nor unsupported. Do not use it as arbitrary CSS.
 

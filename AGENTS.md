@@ -48,6 +48,9 @@ When multiple valid solutions exist, prefer:
   are not part of the task
 - **MUST** use Zod for boundary validation where applicable
 - **MUST** preserve Node server and Cloudflare Workers runtime compatibility
+- **MUST** update `README.md` and the installable agent skill under `skills/loops-core-utils/` when
+  changing the package's public API; keep the skill's `SKILL.md` and relevant references synchronized
+  with the exported API, behavior, and safety guidance
 
 ### Working Principles
 
@@ -79,7 +82,9 @@ A task is **ONLY** complete when **ALL** applicable items are satisfied:
 2. Lint autofixes applied and lint passes with `pnpm lint:fix`
 3. TypeScript checks pass with `pnpm typecheck`
 4. Unit tests pass with `pnpm test`
-5. Documentation updated in `docs/` (single source of truth)
+5. Documentation updated in `README.md` and, when applicable, `docs/`; public API documentation is
+   also updated in `skills/loops-core-utils/` because the installable agent skill is an exposed
+   consumer of this package
 6. All code written or touched has proper JSDoc where applicable
 7. Runtime contracts remain backward-compatible unless explicitly requested
 
