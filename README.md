@@ -9,7 +9,7 @@ This package provides several standalone utilities for working with [Loops](http
 - Safe LMX parsing as AST and component expansion
 - Renderer utilities for safe HTML and component mapping
 - Webhook signature verification and validation schemas
-- Variables and URL resolution
+- Variables, URL, and conditional rule resolution
 
 This package is not a Loops Client (use [the official SDK](https://github.com/loops-so/loops-js) for that). This package also does not include a presentation layer to the parsed LMX (use `@onderwijsin/nuxt-loops-renderer` for that).
 
@@ -92,6 +92,27 @@ resolveSafeLoopsLmxUrl("https://example.test/{data.invoiceId}", variables, "link
 Only explicit `contact.*`, `event.*`, and `data.*` placeholders resolve. Links accept `https`,
 `http`, `mailto`, and `tel`; images accept `https` and `http`. Relative, protocol-relative, data,
 JavaScript, and other unsafe URLs return `null`.
+
+## Conditional rules
+
+Use `evaluate` in a presentation layer when rendering a conditional
+`Section`. It evaluates one documented LMX variable at a time and never throws.
+
+```ts
+import { evaluate } from "@onderwijsin/loops-core";
+
+const visible = evaluate(
+  { variable: "{contact.plan}", operation: "equal", value: "Pro" },
+  variables,
+  { onMissingVariable: false }
+);
+```
+
+Supported operations are `not_empty`, `empty`, `equal`, `not_equal`, `contains`,
+`not_contains`, `numeric_equal`, `numeric_not_equal`, `greater_than`, `less_than`,
+`true`, and `false`. Equality is strict and case-sensitive; numeric operations accept
+numeric strings. Missing variables and invalid rules default to `false`, with explicit
+`onMissingVariable`, `onInvalidCondition`, and `onInvalidComparison` fallbacks available.
 
 ## Verify and validate webhooks
 
