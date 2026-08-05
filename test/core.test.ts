@@ -209,7 +209,8 @@ describe("webhooks", () => {
           subscribed: true,
           userGroup: "",
           mailingLists: { "list-1": true },
-          optInStatus: "accepted"
+          optInStatus: "accepted",
+          favoriteColor: "blue"
         }
       },
       { ...shared, eventName: "contact.unsubscribed", contactIdentity: identity },
@@ -248,6 +249,7 @@ describe("webhooks", () => {
         eventName: "transactional.email.sent",
         contactIdentity: identity,
         transactionalId: "transactional-1",
+        transactionalName: "Transactional",
         email
       },
       ...[
@@ -271,5 +273,23 @@ describe("webhooks", () => {
     ];
     expect(events).toHaveLength(17);
     for (const event of events) expect(loopsWebhookSchema.safeParse(event).success).toBe(true);
+    const created = loopsWebhookSchema.parse(events[0]);
+    expect(
+      (created as unknown as { contact: { favoriteColor: unknown } }).contact.favoriteColor
+    ).toBe("blue");
+    expect(
+      loopsWebhookSchema.safeParse({
+        ...events.find((event) => event.eventName === "email.opened"),
+        sourceType: "transactional",
+        transactionalId: "transactional-1"
+      }).success
+    ).toBe(false);
+    expect(
+      loopsWebhookSchema.safeParse({
+        ...events.find((event) => event.eventName === "email.delivered"),
+        sourceType: "campaign",
+        loopId: "loop-1"
+      }).success
+    ).toBe(false);
   });
 });

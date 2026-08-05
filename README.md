@@ -1,3 +1,5 @@
+![Stichting Onderwijs in](https://raw.githubusercontent.com/onderwijsin/.github/main/banner.png)
+
 # Loops Core Utilities
 
 This package provides several standalone utilities for working with [Loops](https://loops.so/docs). It can be used in any Javascript runtime and it is framework agnostic.
@@ -17,7 +19,7 @@ This package is not a Loops Client (use [the official SDK](https://github.com/lo
 pnpm add @onderwijsin/loops-core
 ```
 
-To add the loops-core skill:
+To add the `loops-core` skill:
 
 ```sh
 npx skills add onderwijsin/loops-core
