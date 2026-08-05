@@ -1,9 +1,9 @@
-import { expandAst, fetchComponent, normalizedMaxDepth } from "./lmx/components";
-import type { LoopsLmxAst } from "./schemas/ast";
-import { parseLmx } from "./lmx/syntax";
-import type { ParseLoopsLmxOptions } from "./lmx/types";
+import { expandAst, fetchComponent, normalizedMaxDepth } from "./components";
+import type { LoopsLmxAst } from "../schemas/ast";
+import { parseLmx } from "./syntax";
+import type { ParseLoopsLmxOptions } from "./types";
 
-export type { LoopsLmxDiagnostic, ParseLoopsLmxOptions } from "./lmx/types";
+export type { LoopsLmxDiagnostic, ParseLoopsLmxOptions } from "./types";
 
 /**
  * Parses LMX permissively and expands reusable components when an API key is supplied.
