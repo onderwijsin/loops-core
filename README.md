@@ -41,6 +41,7 @@ maximum depth of 8.
 ```ts
 const content = await parseLoopsLmx('<Component componentId="footer" />', {
   apiKey: process.env.LOOPS_API_KEY,
+  emailType: "campaign",
   onDiagnostic: (diagnostic) => reportDiagnostic(diagnostic)
 });
 ```
@@ -49,6 +50,9 @@ When `apiKey` is supplied, the parser fetches only the referenced components thr
 Keep this call on a trusted server because the API key must never reach the browser. Without an API
 key, parsing never performs network I/O. Cycles, unavailable components, and depth-limit failures
 retain the original component node and its local children; they do not make the full document fail.
+Explicit component children are retained as the documented local override and are not fetched.
+Set `emailType` to validate the variable namespaces permitted by campaign, workflow, or transactional
+LMX; without it, the parser validates variable syntax and placement but permits all documented namespaces.
 
 ## Renderer utilities
 

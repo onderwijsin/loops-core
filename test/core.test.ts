@@ -51,15 +51,11 @@ describe("LMX", () => {
     vi.mocked(ofetch)
       .mockReset()
       .mockResolvedValueOnce(components.a)
-      .mockResolvedValueOnce(components.b)
-      .mockResolvedValueOnce(undefined);
-    const ast = await parseLoopsLmx(
-      '<Component componentId="a"><Paragraph>fallback</Paragraph></Component>',
-      {
-        apiKey: "key",
-        onDiagnostic: ({ code }) => diagnostics.push(code)
-      }
-    );
+      .mockResolvedValueOnce(components.b);
+    const ast = await parseLoopsLmx('<Component componentId="a" />', {
+      apiKey: "key",
+      onDiagnostic: ({ code }) => diagnostics.push(code)
+    });
     expect(ast.children[0]).toMatchObject({
       name: "Component",
       children: [{ name: "Paragraph" }, { name: "Component" }]
@@ -81,6 +77,20 @@ describe("LMX", () => {
       maxComponentDepth: 0
     });
     expect(limited.children[0]).toMatchObject({ name: "Component" });
+  });
+
+  it("retains explicit component content instead of fetching its default", async () => {
+    vi.mocked(ofetch).mockReset();
+    const ast = await parseLoopsLmx(
+      '<Component componentId="a"><Paragraph>local override</Paragraph></Component>',
+      { apiKey: "key" }
+    );
+
+    expect(ast.children[0]).toMatchObject({
+      name: "Component",
+      children: [{ name: "Paragraph", children: [{ value: "local override" }] }]
+    });
+    expect(ofetch).not.toHaveBeenCalled();
   });
 
   it("does not fetch components unless an API key is supplied", async () => {
@@ -171,6 +181,36 @@ describe("safe rendering helpers", () => {
       children: [{ type: "text", value: "<Strong>{event.plan}</Strong>" }]
     });
     expect(diagnostics).toEqual(expect.arrayContaining(["missing_attribute", "invalid_structure"]));
+  });
+
+  it("validates conditional sections, attributes, and dynamic variable contexts", async () => {
+    const diagnostics: string[] = [];
+    const ast = await parseLoopsLmx(
+      '<Section if="{contact.plan}" ifOperation="equal" ifValue="pro" blockBorderWidth="1" blockBorderColor="#000000"><Paragraph>{contact.name}</Paragraph></Section><Image src="{contact.avatar}" width="601" /><Columns widths="80,80"><ColumnItem /><ColumnItem /></Columns><Br unexpected="true" />',
+      { emailType: "campaign", onDiagnostic: ({ code }) => diagnostics.push(code) }
+    );
+
+    expect(ast.children[0]).toMatchObject({
+      name: "Section",
+      attributes: { if: "{contact.plan}", ifOperation: "equal", ifValue: "pro" }
+    });
+    expect(diagnostics).toEqual(
+      expect.arrayContaining([
+        "invalid_dynamic_attribute",
+        "invalid_attribute",
+        "unknown_attribute"
+      ])
+    );
+  });
+
+  it("reports malformed and unsupported LMX variable syntax", async () => {
+    const diagnostics: string[] = [];
+    await parseLoopsLmx("<Paragraph>{firstName} {data.resetLink}</Paragraph><Image src=x />", {
+      emailType: "campaign",
+      onDiagnostic: ({ code }) => diagnostics.push(code)
+    });
+
+    expect(diagnostics).toEqual(expect.arrayContaining(["invalid_variable", "malformed_tag"]));
   });
 });
 

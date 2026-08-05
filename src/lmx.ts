@@ -16,7 +16,10 @@ export type LoopsLmxDiagnostic = {
     | "unknown_attribute"
     | "missing_attribute"
     | "invalid_structure"
-    | "invalid_self_closing";
+    | "invalid_self_closing"
+    | "invalid_attribute"
+    | "invalid_variable"
+    | "invalid_dynamic_attribute";
   message: string;
   componentId?: string;
   tagName?: string;
@@ -25,6 +28,8 @@ export type LoopsLmxDiagnostic = {
 /** Options for resilient LMX parsing and optional server-side component expansion. */
 export type ParseLoopsLmxOptions = {
   apiKey?: string;
+  /** The Loops email type used to validate variable namespaces. */
+  emailType?: "campaign" | "workflow" | "transactional";
   maxComponentDepth?: number;
   onDiagnostic?: (diagnostic: LoopsLmxDiagnostic) => void;
 };
@@ -69,6 +74,14 @@ const sharedBlockAttributes = new Set([
   "paddingBottom",
   "paddingLeft"
 ]);
+const conditionalSectionAttributes = new Set([
+  "if",
+  "ifOperation",
+  "ifValue",
+  "blockBorderWidth",
+  "blockBorderColor"
+]);
+const noAttributes = new Set<string>();
 const textBlockAttributes = new Set(["fontSize", "lineHeight", "align", ...sharedBlockAttributes]);
 const allowedAttributes: Record<string, ReadonlySet<string>> = {
   H1: textBlockAttributes,
@@ -118,7 +131,7 @@ const allowedAttributes: Record<string, ReadonlySet<string>> = {
     ...sharedBlockAttributes
   ]),
   Component: new Set(["componentId", ...sharedBlockAttributes]),
-  Section: new Set(["href", "notrack", ...sharedBlockAttributes]),
+  Section: new Set(["href", "notrack", ...conditionalSectionAttributes, ...sharedBlockAttributes]),
   Icons: new Set(["align", "gap", "size", "color", ...sharedBlockAttributes]),
   Icon: new Set(["name", "href", "notrack"]),
   Style: new Set([
@@ -168,8 +181,44 @@ const allowedAttributes: Record<string, ReadonlySet<string>> = {
   Strike: new Set(["textColor"]),
   Code: new Set(["textColor"]),
   Text: new Set(["textColor"]),
-  Link: new Set(["href", "notrack", "textColor"])
+  Link: new Set(["href", "notrack", "textColor"]),
+  Br: noAttributes,
+  ColumnItem: noAttributes
 };
+const dynamicAttributes: Record<string, ReadonlySet<string>> = {
+  Button: new Set(["href"]),
+  Image: new Set(["alt", "href", "dynamicSrc"]),
+  Link: new Set(["href"]),
+  Section: new Set(["href", "if"])
+};
+const alignValues = new Set(["left", "center", "right"]);
+const sectionOperations = new Set([
+  "not_empty",
+  "empty",
+  "equal",
+  "not_equal",
+  "contains",
+  "not_contains",
+  "numeric_equal",
+  "numeric_not_equal",
+  "greater_than",
+  "less_than",
+  "true",
+  "false"
+]);
+const sectionOperationsWithValue = new Set([
+  "equal",
+  "not_equal",
+  "contains",
+  "not_contains",
+  "numeric_equal",
+  "numeric_not_equal",
+  "greater_than",
+  "less_than"
+]);
+const variablePattern = /\{(contact|event|data)\.([A-Za-z0-9_-]+)\}/g;
+const bracedValuePattern = /\{[^{}]*\}/g;
+const loopsImageHosts = new Set(["images.vialoops.com"]);
 
 /**
  * Parses LMX permissively and expands reusable components when an API key is supplied.
@@ -254,7 +303,7 @@ function parseLmx(lmx: unknown, options: ParseLoopsLmxOptions): LoopsLmxAst {
       appendNode(stack, { type: "text", value: token });
       continue;
     }
-    const element = createElement(token);
+    const element = createElement(token, options);
     if (!element) {
       diagnostic(options, {
         code: "malformed_tag",
@@ -401,13 +450,21 @@ function closeElement(
  * @param token - Opening-tag token.
  * @returns Parsed element with empty children, or `null` for invalid syntax.
  */
-function createElement(token: string): LoopsLmxElement | null {
+function createElement(token: string, options: ParseLoopsLmxOptions): LoopsLmxElement | null {
   const match = /^<\s*([A-Za-z][\w-]*)([^>]*)>$/.exec(token);
   if (!match) return null;
+  const parsedAttributes = parseAttributes(match[2] ?? "");
+  if (parsedAttributes.malformed) {
+    diagnostic(options, {
+      code: "malformed_tag",
+      message: "Ignored malformed or unquoted LMX attribute.",
+      tagName: match[1]!
+    });
+  }
   return {
     type: "element",
     name: match[1]!,
-    attributes: parseAttributes(match[2] ?? ""),
+    attributes: parsedAttributes.attributes,
     children: []
   };
 }
@@ -418,13 +475,182 @@ function createElement(token: string): LoopsLmxElement | null {
  * @param source - Attribute substring from an opening tag.
  * @returns String attribute values indexed by their original names.
  */
-function parseAttributes(source: string): Record<string, string> {
-  return Object.fromEntries(
-    [...source.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)].map((match) => [
-      match[1]!,
-      match[2] ?? match[3] ?? ""
-    ])
+function parseAttributes(source: string): {
+  attributes: Record<string, string>;
+  malformed: boolean;
+} {
+  const attributes: Record<string, string> = {};
+  const attributeSource = source.replace(/\/\s*$/, "");
+  const pattern = /\s+([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/y;
+  let index = 0;
+  while (index < attributeSource.length) {
+    pattern.lastIndex = index;
+    const match = pattern.exec(attributeSource);
+    if (!match) return { attributes, malformed: attributeSource.slice(index).trim().length > 0 };
+    attributes[match[1]!] = match[2] ?? match[3] ?? "";
+    index = pattern.lastIndex;
+  }
+  return { attributes, malformed: false };
+}
+
+/** Reports value, variable, and context violations for documented LMX attributes. */
+function validateAttributes(node: LoopsLmxElement, options: ParseLoopsLmxOptions): void {
+  for (const [name, value] of Object.entries(node.attributes)) {
+    validateVariableValue(value, node.name, name, options);
+    if (!isValidAttributeValue(node.name, name, value)) {
+      diagnostic(options, {
+        code: "invalid_attribute",
+        message: `Invalid ${node.name} attribute value: ${name}.`,
+        tagName: node.name
+      });
+    }
+  }
+
+  if (node.name !== "Section") return;
+  const condition = node.attributes.if;
+  const operation = node.attributes.ifOperation;
+  if (!condition) return;
+  if (!isSingleVariable(condition)) {
+    diagnostic(options, {
+      code: "invalid_variable",
+      message: "Section if must be a single prefixed LMX variable.",
+      tagName: node.name
+    });
+  }
+  if (operation && !sectionOperations.has(operation)) {
+    diagnostic(options, {
+      code: "invalid_attribute",
+      message: "Section ifOperation is not supported.",
+      tagName: node.name
+    });
+  }
+  if (operation && sectionOperationsWithValue.has(operation) && !node.attributes.ifValue) {
+    diagnostic(options, {
+      code: "missing_attribute",
+      message: `Section ifOperation ${operation} requires ifValue.`,
+      tagName: node.name
+    });
+  }
+}
+
+/** Reports invalid variables while preserving the parser's recoverable AST. */
+function validateVariableValue(
+  value: string,
+  elementName: string,
+  attributeName: string | undefined,
+  options: ParseLoopsLmxOptions
+): void {
+  const bracedValues = value.match(bracedValuePattern) ?? [];
+  if (bracedValues.length === 0) return;
+  const variables = [...value.matchAll(variablePattern)];
+  if (variables.length !== bracedValues.length) {
+    diagnostic(options, {
+      code: "invalid_variable",
+      message: "LMX variables must use a supported prefixed namespace without inline fallbacks.",
+      tagName: elementName
+    });
+    return;
+  }
+  if (attributeName) {
+    if (!dynamicAttributes[elementName]?.has(attributeName)) {
+      diagnostic(options, {
+        code: "invalid_dynamic_attribute",
+        message: `${elementName} ${attributeName} does not support LMX variables.`,
+        tagName: elementName
+      });
+    }
+  } else if (!inlineContentParents.has(elementName) && elementName !== "Button") {
+    diagnostic(options, {
+      code: "invalid_variable",
+      message: `${elementName} does not support LMX variables in text content.`,
+      tagName: elementName
+    });
+  }
+  for (const match of variables) {
+    const namespace = match[1] as "contact" | "event" | "data";
+    if (!isVariableNamespaceAllowed(namespace, options.emailType)) {
+      diagnostic(options, {
+        code: "invalid_variable",
+        message: `{${namespace}.*} is not valid in ${options.emailType} LMX.`,
+        tagName: elementName
+      });
+    }
+  }
+}
+
+/** Determines whether a variable namespace is valid for an optional email type. */
+function isVariableNamespaceAllowed(
+  namespace: "contact" | "event" | "data",
+  emailType: ParseLoopsLmxOptions["emailType"]
+): boolean {
+  if (!emailType) return true;
+  return (
+    (emailType === "campaign" && namespace === "contact") ||
+    (emailType === "workflow" && (namespace === "contact" || namespace === "event")) ||
+    (emailType === "transactional" && namespace === "data")
   );
+}
+
+/** Determines whether a string is exactly one documented LMX variable. */
+function isSingleVariable(value: string): boolean {
+  return /^\{(?:contact|event|data)\.[A-Za-z0-9_-]+\}$/.test(value);
+}
+
+/** Validates documented scalar attribute formats and constrained value sets. */
+function isValidAttributeValue(elementName: string, name: string, value: string): boolean {
+  if (name === "align") return alignValues.has(value);
+  if (name === "verticalAlignment") return new Set(["top", "middle", "bottom"]).has(value);
+  if (name === "notrack" || name === "stackOnMobile" || name === "reverseOnMobile") {
+    return value === "true" || value === "false";
+  }
+  if (name === "bodyFontCategory") {
+    return new Set([
+      "ui-sans-serif",
+      "ui-serif",
+      "ui-monospace",
+      "sans-serif",
+      "serif",
+      "monospace"
+    ]).has(value);
+  }
+  if (name === "color" && elementName === "Icons") {
+    return new Set(["#000000", "#808080", "#ffffff"]).has(value.toLowerCase());
+  }
+  if (name === "src" && elementName === "Image") return isLoopsHostedImageUrl(value);
+  if (name === "width" && elementName === "Image") return isNumberInRange(value, 1, 600);
+  if (name === "width" && elementName === "Divider") return isNumberInRange(value, 10, 100);
+  if (name === "gap" && elementName === "Columns") return isNumberInRange(value, 12, 150);
+  if (name === "gap" && elementName === "Icons") return isNumberInRange(value, 4, 200);
+  if (name === "size" && elementName === "Icons") return isNumberInRange(value, 18, 48);
+  if (name === "borderWidth" && elementName !== "Style") return isNumberInRange(value, 0, 16);
+  if (name === "fontSize") return isNumberInRange(value, elementName === "Button" ? 6 : 12, 64);
+  if (name === "lineHeight") return isNumberInRange(value, 100, 300);
+  if (name === "blockBorderRadius" || name === "borderRadius")
+    return isNumberInRange(value, 0, 999);
+  if (name === "innerXPadding" || name === "innerYPadding") return isNumberInRange(value, 0, 100);
+  if (name.startsWith("padding") || name === "blockBorderWidth")
+    return isNumberInRange(value, 0, 999);
+  if (name.endsWith("Color") || (name === "color" && elementName === "Divider")) {
+    return /^#[\da-fA-F]{3}(?:[\da-fA-F]{3})?$/.test(value);
+  }
+  return true;
+}
+
+/** Determines whether a numeric LMX attribute falls within its inclusive bounds. */
+function isNumberInRange(value: string, minimum: number, maximum: number): boolean {
+  if (!/^\d+(?:\.\d+)?$/.test(value)) return false;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= minimum && number <= maximum;
+}
+
+/** Determines whether an image source is a static URL hosted by Loops. */
+function isLoopsHostedImageUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && loopsImageHosts.has(url.hostname);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -444,6 +670,7 @@ function validateLmxAst(ast: LoopsLmxAst, options: ParseLoopsLmxOptions): void {
           message: "Text is not allowed at the LMX document top level."
         });
       }
+      if (parent !== "CodeBlock") validateVariableValue(node.value, parent, undefined, options);
       return;
     }
 
@@ -528,6 +755,7 @@ function validateLmxAst(ast: LoopsLmxAst, options: ParseLoopsLmxOptions): void {
         }
       }
     }
+    validateAttributes(node, options);
     if (voidElements.has(node.name) && node.children.length > 0) {
       diagnostic(options, {
         code: "invalid_self_closing",
@@ -575,6 +803,20 @@ function validateLmxAst(ast: LoopsLmxAst, options: ParseLoopsLmxOptions): void {
         message: "Columns requires two to four ColumnItem children.",
         tagName: node.name
       });
+    }
+    if (node.name === "Columns" && node.attributes.widths) {
+      const widths = node.attributes.widths.split(",").map((width) => Number(width.trim()));
+      if (
+        widths.length !== childElements.length ||
+        widths.some((width) => !Number.isFinite(width) || width <= 0) ||
+        Math.abs(widths.reduce((total, width) => total + width, 0) - 100) > 0.01
+      ) {
+        diagnostic(options, {
+          code: "invalid_attribute",
+          message: "Columns widths must match the column count and total 100.",
+          tagName: node.name
+        });
+      }
     }
     if (node.name === "Icons" && (childElements.length < 1 || childElements.length > 100)) {
       diagnostic(options, {
@@ -756,6 +998,7 @@ async function expandNode(
   const retained = { ...node, children };
   const componentId = node.name === "Component" ? node.attributes.componentId : undefined;
   if (!componentId) return retained;
+  if (hasExplicitComponentContent(node.children)) return retained;
   if (ancestry.has(componentId)) {
     diagnostic(options, {
       code: "component_cycle",
@@ -800,6 +1043,11 @@ async function expandNode(
     });
     return retained;
   }
+}
+
+/** Determines whether a component supplies local content that overrides its remote default. */
+function hasExplicitComponentContent(children: LoopsLmxNode[]): boolean {
+  return children.some((child) => child.type === "element" || child.value.trim().length > 0);
 }
 
 /**
