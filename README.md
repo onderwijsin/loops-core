@@ -157,9 +157,17 @@ linting, type checking, tests, build, and commit validation. Successful `main` r
 semantic-release, npm Trusted Publishing, and provenance. The first publish requires an
 `NPM_TOKEN` with permission to create the package; after configuring the package's trusted
 publisher on npm, subsequent releases use GitHub Actions OIDC.
+
 Each release updates `CHANGELOG.md` and commits the generated changelog and `package.json` version
 back to `main` with `[skip ci]`. Releases are manually dispatched from `main`; the GitHub release
 app creates the protected-branch commit, tag, and GitHub Release.
+
+When first opening the project, make sure to run
+
+```sh
+corepack enable
+pnpm husky
+```
 
 ## License and support
 
