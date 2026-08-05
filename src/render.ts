@@ -1,4 +1,4 @@
-import type { LoopsLmxElement, LoopsLmxNode } from "./ast";
+import type { LoopsLmxElement, LoopsLmxNode } from "./schemas/ast";
 
 const inlineElements = new Set(["Strong", "Em", "Underline", "Code", "Link"]);
 const blockElements = new Set([

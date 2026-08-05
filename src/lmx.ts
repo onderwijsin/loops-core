@@ -1,4 +1,4 @@
-import type { LoopsLmxAst, LoopsLmxElement, LoopsLmxNode } from "./ast";
+import type { LoopsLmxAst, LoopsLmxElement, LoopsLmxNode } from "./schemas/ast";
 import { ofetch } from "ofetch";
 
 /** A recoverable parsing or component-expansion event. */
