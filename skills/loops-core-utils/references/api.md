@@ -14,14 +14,14 @@ import {
 
 const diagnostics: LoopsLmxDiagnostic[] = [];
 const ast: LoopsLmxAst = await parseLoopsLmx(lmx, {
-  // Include apiKey only in trusted server code to expand <Component> nodes.
+  // Optional: only trusted server code should enable component expansion.
   apiKey: process.env.LOOPS_API_KEY,
   maxComponentDepth: 8,
   onDiagnostic: (diagnostic) => diagnostics.push(diagnostic)
 });
 ```
 
-`parseLoopsLmx` is permissive: it retains recoverable malformed text and unknown nodes, ignores comments, and does not throw for an individual node failure. It retains the original component and local children for load failures, cycles, invalid component responses, and depth-limit failures. Do not add a user-supplied component loader; component retrieval is internal when `apiKey` is supplied.
+`parseLoopsLmx` is permissive: it retains recoverable malformed text and unknown nodes, ignores comments, and does not throw for an individual node failure. It retains the original component and local children for load failures, cycles, invalid component responses, and depth-limit failures. Without `apiKey`, it never performs network I/O. With `apiKey`, component retrieval is the parser's deliberately narrow, opt-in transport exception.
 
 Validate persisted AST before rendering with `loopsLmxAstSchema.safeParse`. The exported node schemas are `loopsLmxTextNodeSchema`, `loopsLmxElementSchema`, and `loopsLmxNodeSchema`.
 
@@ -66,7 +66,7 @@ Renderer helpers:
 
 ```ts
 import {
-  loopsCampaignWebhookSchema,
+  loopsWebhookSchema,
   loopsWebhookEnvelopeSchema,
   verifyLoopsWebhookSignature
 } from "@onderwijsin/loops-core";
@@ -78,23 +78,12 @@ if (!valid) throw new Error("Invalid webhook signature");
 
 const body: unknown = JSON.parse(rawBody);
 const envelope = loopsWebhookEnvelopeSchema.safeParse(body);
-const campaign = loopsCampaignWebhookSchema.safeParse(body);
+const event = loopsWebhookSchema.safeParse(body);
 ```
 
 `headers` must contain `{ id, timestamp, signature }`. Verification accepts multiple versioned signatures, validates safe integer timestamps and tolerance, uses Web Crypto HMAC-SHA256 and constant-time comparison, and returns `false` rather than throwing for invalid inputs.
 
-Use `loopsWebhookEnvelopeSchema` to identify/ignore unrelated verified events. Use the strict campaign schema for `campaign.email.sent` only.
-
-## Email Campaign API
-
-```ts
-import { createLoopsEmailCampaignClient } from "@onderwijsin/loops-core";
-
-const client = createLoopsEmailCampaignClient(process.env.LOOPS_API_KEY!);
-const message = await client.getEmailMessage("email-message-id");
-const component = await client.getComponent("component-id");
-```
-
-The client uses `ofetch` internally with the fixed Loops API base URL and `retry: 0`, URI-encodes IDs, and validates successful responses with `loopsEmailMessageSchema` or `loopsComponentSchema`. It throws on transport failures, non-2xx responses, and invalid successful responses. Do not add a fetcher parameter.
-
-`LoopsEmailMessage` is normalized and includes `updatedAt: Date`; `LoopsComponent` is normalized to `{ componentId, lmx }`.
+`loopsWebhookSchema` is a discriminated union covering all documented contact, email-send,
+delivery/engagement, and testing events. Use `loopsWebhookEnvelopeSchema` when only the shared
+metadata is needed. The package does not provide an email client or campaign schemas; install the
+official Loops SDK when API transport or campaign types are needed.

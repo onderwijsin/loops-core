@@ -3,8 +3,7 @@ export {
   loopsLmxElementSchema,
   loopsLmxNodeSchema,
   loopsLmxTextNodeSchema
-} from "./ast";
-export { createLoopsEmailCampaignClient } from "./client";
+} from "./schemas/ast";
 export { parseLoopsLmx } from "./lmx";
 export {
   getLoopsLmxColumnsLayout,
@@ -16,22 +15,16 @@ export {
   isRenderableLoopsLmxElement
 } from "./render";
 export {
-  loopsCampaignWebhookSchema,
-  loopsComponentSchema,
-  loopsEmailMessageSchema,
-  loopsWebhookEnvelopeSchema
-} from "./schemas";
+  loopsWebhookEnvelopeSchema,
+  loopsWebhookEventSchema,
+  loopsWebhookSchema
+} from "./schemas/webhooks";
 export { verifyLoopsWebhookSignature } from "./signature";
 export { resolveSafeLoopsLmxUrl } from "./urls";
 export { resolveLoopsLmxVariables } from "./variables";
-export type { LoopsLmxAst, LoopsLmxElement, LoopsLmxNode, LoopsLmxTextNode } from "./ast";
+export type { LoopsLmxAst, LoopsLmxElement, LoopsLmxNode, LoopsLmxTextNode } from "./schemas/ast";
 export type { LoopsLmxDiagnostic, ParseLoopsLmxOptions } from "./lmx";
-export type {
-  LoopsCampaignWebhook,
-  LoopsComponent,
-  LoopsEmailMessage,
-  LoopsWebhookEnvelope
-} from "./schemas";
+export type { LoopsWebhook, LoopsWebhookEnvelope } from "./schemas/webhooks";
 export type { LoopsWebhookHeaders } from "./signature";
 export type { LoopsLmxUrlKind } from "./urls";
 export type { LoopsLmxVariables } from "./variables";
