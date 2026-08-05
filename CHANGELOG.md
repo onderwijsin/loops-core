@@ -1,3 +1,15 @@
+# [1.2.0](https://github.com/onderwijsin/loops-core/compare/v1.1.0...v1.2.0) (2026-08-05)
+
+
+### Bug Fixes
+
+* **lmx:** Recognize Quote and Br as supported renderer elements ([f940112](https://github.com/onderwijsin/loops-core/commit/f940112e575285e3000aafadc35d8ab5c4b79fdc))
+
+
+### Features
+
+* **render:** Add safe inline LMX styles utility ([a71df09](https://github.com/onderwijsin/loops-core/commit/a71df0945163301dbd74b3cb2a05baab28f3746b))
+
 # [1.1.0](https://github.com/onderwijsin/loops-core/compare/v1.0.0...v1.1.0) (2026-08-05)
 
 
