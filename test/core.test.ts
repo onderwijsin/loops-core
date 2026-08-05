@@ -6,6 +6,7 @@ import {
   getLoopsLmxPixels,
   hasRenderableLoopsLmxNodes,
   hasUnsupportedLoopsLmxNodes,
+  isRenderableLoopsLmxElement,
   loopsLmxAstSchema,
   loopsWebhookSchema,
   parseLoopsLmx,
@@ -99,16 +100,26 @@ describe("LMX", () => {
     expect(serialized).toContain('"name":"Image"');
     expect(serialized).toContain('"href":"https://example.test/{contact.userId}"');
     expect(serialized).toContain('"href":"x.com"');
-    expect(hasUnsupportedLoopsLmxNodes(ast.children)).toBe(true);
+    expect(hasUnsupportedLoopsLmxNodes(ast.children)).toBe(false);
   });
 });
 
 describe("safe rendering helpers", () => {
   it("resolves supported variables and safe URLs", () => {
-    const variables = { contact: { name: "Ada", missing: null }, data: { id: 42 } };
+    const variables = {
+      contact: { name: "Ada", missing: null },
+      event: { plan: "Pro" },
+      data: { id: 42 }
+    };
     expect(
-      resolveLoopsLmxVariables("{contact.name} {contact.missing} {other.x} {data.id}", variables)
-    ).toBe("Ada  {other.x} 42");
+      resolveLoopsLmxVariables(
+        "{contact.name} {contact.missing} {other.x} {event.plan} {data.id}",
+        variables
+      )
+    ).toBe("Ada  {other.x} Pro 42");
+    expect(resolveSafeLoopsLmxUrl("https://example.test/{event.plan}", variables, "link")).toBe(
+      "https://example.test/Pro"
+    );
     expect(resolveSafeLoopsLmxUrl("https://example.test/{data.id}", variables, "link")).toBe(
       "https://example.test/42"
     );
@@ -139,9 +150,27 @@ describe("safe rendering helpers", () => {
       gap: "24px",
       gridTemplateColumns: "repeat(2, minmax(0, 1fr))"
     });
+    expect(getLoopsLmxColumnsLayout("50,50", "11", 2).gap).toBe("24px");
+    expect(
+      isRenderableLoopsLmxElement({ type: "element", name: "Text", attributes: {}, children: [] })
+    ).toBe(true);
     const ast = await parseLoopsLmx("<Style>x</Style><Unknown /><Paragraph>visible</Paragraph>");
     expect(hasUnsupportedLoopsLmxNodes(ast.children)).toBe(true);
     expect(hasRenderableLoopsLmxNodes(ast.children)).toBe(true);
+  });
+
+  it("keeps CodeBlock contents raw and reports semantic LMX violations", async () => {
+    const diagnostics: string[] = [];
+    const ast = await parseLoopsLmx(
+      "<CodeBlock><Strong>{event.plan}</Strong></CodeBlock><Image /><Paragraph><H1>bad</H1></Paragraph><Columns><ColumnItem /></Columns>",
+      { onDiagnostic: ({ code }) => diagnostics.push(code) }
+    );
+
+    expect(ast.children[0]).toMatchObject({
+      name: "CodeBlock",
+      children: [{ type: "text", value: "<Strong>{event.plan}</Strong>" }]
+    });
+    expect(diagnostics).toEqual(expect.arrayContaining(["missing_attribute", "invalid_structure"]));
   });
 });
 

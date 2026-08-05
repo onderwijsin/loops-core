@@ -11,7 +11,12 @@ export type LoopsLmxDiagnostic = {
     | "component_load_failed"
     | "invalid_component"
     | "component_cycle"
-    | "component_depth_exceeded";
+    | "component_depth_exceeded"
+    | "unsupported_tag"
+    | "unknown_attribute"
+    | "missing_attribute"
+    | "invalid_structure"
+    | "invalid_self_closing";
   message: string;
   componentId?: string;
   tagName?: string;
@@ -28,6 +33,143 @@ type GetComponent = (componentId: string) => Promise<{ lmx: string } | undefined
 
 const defaultMaxComponentDepth = 8;
 const voidElements = new Set(["Image", "Divider", "Br", "Icon", "Style"]);
+const inlineElements = new Set(["Strong", "Em", "Underline", "Strike", "Code", "Text", "Link"]);
+const inlineContentParents = new Set(["H1", "H2", "H3", "Paragraph", "Quote", "ListItem"]);
+const topLevelElements = new Set([
+  "Style",
+  "H1",
+  "H2",
+  "H3",
+  "Paragraph",
+  "Quote",
+  "CodeBlock",
+  "Button",
+  "Image",
+  "Divider",
+  "OrderedList",
+  "UnorderedList",
+  "Columns",
+  "Component",
+  "Icons",
+  "Section"
+]);
+const knownElements = new Set([
+  ...topLevelElements,
+  ...inlineElements,
+  "Br",
+  "ListItem",
+  "ColumnItem",
+  "Icon"
+]);
+const sharedBlockAttributes = new Set([
+  "blockColor",
+  "blockBorderRadius",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft"
+]);
+const textBlockAttributes = new Set(["fontSize", "lineHeight", "align", ...sharedBlockAttributes]);
+const allowedAttributes: Record<string, ReadonlySet<string>> = {
+  H1: textBlockAttributes,
+  H2: textBlockAttributes,
+  H3: textBlockAttributes,
+  Paragraph: textBlockAttributes,
+  Quote: textBlockAttributes,
+  ListItem: new Set(["fontSize", "lineHeight", ...sharedBlockAttributes]),
+  CodeBlock: new Set(["fontSize", "lineHeight", ...sharedBlockAttributes]),
+  Button: new Set([
+    "href",
+    "bgColor",
+    "textColor",
+    "borderColor",
+    "blockColor",
+    "borderRadius",
+    "borderWidth",
+    "innerXPadding",
+    "innerYPadding",
+    "fontSize",
+    "align",
+    "notrack",
+    ...sharedBlockAttributes
+  ]),
+  Image: new Set([
+    "src",
+    "alt",
+    "href",
+    "width",
+    "align",
+    "borderRadius",
+    "borderWidth",
+    "borderColor",
+    "dynamicSrc",
+    "notrack",
+    ...sharedBlockAttributes
+  ]),
+  Divider: new Set(["align", "width", "borderWidth", "color", ...sharedBlockAttributes]),
+  OrderedList: new Set(["start", "align"]),
+  UnorderedList: new Set(["align"]),
+  Columns: new Set([
+    "gap",
+    "widths",
+    "verticalAlignment",
+    "stackOnMobile",
+    "reverseOnMobile",
+    ...sharedBlockAttributes
+  ]),
+  Component: new Set(["componentId", ...sharedBlockAttributes]),
+  Section: new Set(["href", "notrack", ...sharedBlockAttributes]),
+  Icons: new Set(["align", "gap", "size", "color", ...sharedBlockAttributes]),
+  Icon: new Set(["name", "href", "notrack"]),
+  Style: new Set([
+    "themeId",
+    "backgroundColor",
+    "backgroundXPadding",
+    "backgroundYPadding",
+    "bodyColor",
+    "bodyXPadding",
+    "bodyYPadding",
+    "bodyFontFamily",
+    "bodyFontCategory",
+    "borderColor",
+    "borderWidth",
+    "borderRadius",
+    "buttonBodyColor",
+    "buttonBodyXPadding",
+    "buttonBodyYPadding",
+    "buttonBorderColor",
+    "buttonBorderWidth",
+    "buttonBorderRadius",
+    "buttonTextColor",
+    "buttonTextFontSize",
+    "dividerColor",
+    "dividerBorderWidth",
+    "textBaseColor",
+    "textBaseFontSize",
+    "textBaseLineHeight",
+    "textBaseLetterSpacing",
+    "textLinkColor",
+    "heading1Color",
+    "heading1FontSize",
+    "heading1LineHeight",
+    "heading1LetterSpacing",
+    "heading2Color",
+    "heading2FontSize",
+    "heading2LineHeight",
+    "heading2LetterSpacing",
+    "heading3Color",
+    "heading3FontSize",
+    "heading3LineHeight",
+    "heading3LetterSpacing"
+  ]),
+  Strong: new Set(["textColor"]),
+  Em: new Set(["textColor"]),
+  Underline: new Set(["textColor"]),
+  Strike: new Set(["textColor"]),
+  Code: new Set(["textColor"]),
+  Text: new Set(["textColor"]),
+  Link: new Set(["href", "notrack", "textColor"])
+};
 
 /**
  * Parses LMX permissively and expands reusable components when an API key is supplied.
@@ -122,8 +264,16 @@ function parseLmx(lmx: unknown, options: ParseLoopsLmxOptions): LoopsLmxAst {
       continue;
     }
     appendNode(stack, element);
+    if (voidElements.has(element.name) && !isSelfClosing(token)) {
+      diagnostic(options, {
+        code: "invalid_self_closing",
+        message: `${element.name} must be self-closing.`,
+        tagName: element.name
+      });
+    }
     if (!isSelfClosing(token) && !voidElements.has(element.name)) stack.push(element);
   }
+  validateLmxAst(root, options);
   return root;
 }
 
@@ -161,9 +311,21 @@ function tokenize(source: string): string[] {
       return tokens;
     }
     if (textStart < index) tokens.push(source.slice(textStart, index));
-    tokens.push(source.slice(index, end + 1));
+    const tag = source.slice(index, end + 1);
+    tokens.push(tag);
     index = end + 1;
     textStart = index;
+    if (/^<\s*CodeBlock(?:\s[^>]*)?>$/.test(tag) && !isSelfClosing(tag)) {
+      const rawEnd = source.indexOf("</CodeBlock>", index);
+      if (rawEnd === -1) {
+        if (index < source.length) tokens.push(source.slice(index));
+        return tokens;
+      }
+      if (rawEnd > index) tokens.push(source.slice(index, rawEnd));
+      tokens.push("</CodeBlock>");
+      index = rawEnd + "</CodeBlock>".length;
+      textStart = index;
+    }
   }
   if (textStart < source.length) tokens.push(source.slice(textStart));
   return tokens;
@@ -263,6 +425,234 @@ function parseAttributes(source: string): Record<string, string> {
       match[2] ?? match[3] ?? ""
     ])
   );
+}
+
+/**
+ * Reports LMX specification violations without discarding the recoverable AST.
+ *
+ * @param ast - Parsed LMX document.
+ * @param options - Diagnostic callback configuration.
+ * @returns Nothing; emits semantic diagnostics for callers that need strict validation.
+ */
+function validateLmxAst(ast: LoopsLmxAst, options: ParseLoopsLmxOptions): void {
+  let styleCount = 0;
+  const visit = (node: LoopsLmxNode, parent: string): void => {
+    if (node.type === "text") {
+      if (parent === "root" && node.value.trim()) {
+        diagnostic(options, {
+          code: "invalid_structure",
+          message: "Text is not allowed at the LMX document top level."
+        });
+      }
+      return;
+    }
+
+    if (!knownElements.has(node.name)) {
+      diagnostic(options, {
+        code: "unsupported_tag",
+        message: `Unsupported LMX tag: ${node.name}.`,
+        tagName: node.name
+      });
+    }
+    if (parent === "root" && !topLevelElements.has(node.name)) {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: `${node.name} is not allowed at the LMX document top level.`,
+        tagName: node.name
+      });
+    }
+    if (inlineContentParents.has(parent) && !inlineElements.has(node.name) && node.name !== "Br") {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: `${parent} may only contain inline content.`,
+        tagName: parent
+      });
+    }
+    if (parent === "Button" && node.name !== "Text") {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: "Button may contain text and variables, but not inline tags.",
+        tagName: "Button"
+      });
+    }
+    if (parent === "CodeBlock") {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: "CodeBlock content must be raw text.",
+        tagName: "CodeBlock"
+      });
+    }
+    if (parent === "ColumnItem" || parent === "Component" || parent === "Section") {
+      const disallowed =
+        node.name === "Style" ||
+        (parent === "ColumnItem" && node.name === "Columns") ||
+        (parent === "Component" && node.name === "Component") ||
+        (parent === "Section" && node.name === "Section");
+      if (disallowed || !topLevelElements.has(node.name)) {
+        diagnostic(options, {
+          code: "invalid_structure",
+          message: `${parent} may only contain permitted block tags.`,
+          tagName: parent
+        });
+      }
+    }
+    if (node.name === "Style") styleCount += 1;
+
+    const required =
+      node.name === "Image"
+        ? "src"
+        : node.name === "Component"
+          ? "componentId"
+          : node.name === "Icon"
+            ? "name"
+            : node.name === "Link"
+              ? "href"
+              : undefined;
+    if (required && !node.attributes[required]) {
+      diagnostic(options, {
+        code: "missing_attribute",
+        message: `${node.name} requires the ${required} attribute.`,
+        tagName: node.name
+      });
+    }
+
+    const attributes = allowedAttributes[node.name];
+    if (attributes) {
+      for (const attribute of Object.keys(node.attributes)) {
+        if (!attributes.has(attribute)) {
+          diagnostic(options, {
+            code: "unknown_attribute",
+            message: `Unknown ${node.name} attribute: ${attribute}.`,
+            tagName: node.name
+          });
+        }
+      }
+    }
+    if (voidElements.has(node.name) && node.children.length > 0) {
+      diagnostic(options, {
+        code: "invalid_self_closing",
+        message: `${node.name} must be self-closing.`,
+        tagName: node.name
+      });
+    }
+
+    const childElements = node.children.filter(
+      (child): child is LoopsLmxElement => child.type === "element"
+    );
+    const expectedChild =
+      node.name === "OrderedList" || node.name === "UnorderedList"
+        ? "ListItem"
+        : node.name === "Columns"
+          ? "ColumnItem"
+          : node.name === "Icons"
+            ? "Icon"
+            : undefined;
+    if (
+      expectedChild &&
+      node.children.some((child) =>
+        child.type === "text" ? child.value.trim().length > 0 : child.name !== expectedChild
+      )
+    ) {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: `${node.name} may only contain ${expectedChild} children.`,
+        tagName: node.name
+      });
+    }
+    if (
+      (node.name === "OrderedList" || node.name === "UnorderedList") &&
+      childElements.length < 1
+    ) {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: `${node.name} requires at least one ListItem.`,
+        tagName: node.name
+      });
+    }
+    if (node.name === "Columns" && (childElements.length < 2 || childElements.length > 4)) {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: "Columns requires two to four ColumnItem children.",
+        tagName: node.name
+      });
+    }
+    if (node.name === "Icons" && (childElements.length < 1 || childElements.length > 100)) {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: "Icons requires one to 100 Icon children.",
+        tagName: node.name
+      });
+    }
+    if (
+      node.name === "ColumnItem" &&
+      childElements.some(
+        (child) =>
+          !topLevelElements.has(child.name) || child.name === "Style" || child.name === "Columns"
+      )
+    ) {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: "ColumnItem may contain block tags but not Style or nested Columns.",
+        tagName: node.name
+      });
+    }
+    if (
+      node.name === "Component" &&
+      childElements.some((child) => child.name === "Style" || child.name === "Component")
+    ) {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: "Components cannot contain Style or nested Component tags.",
+        tagName: node.name
+      });
+    }
+    if (
+      node.name === "Section" &&
+      childElements.some((child) => child.name === "Style" || child.name === "Section")
+    ) {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: "Sections cannot contain Style or nested Section tags.",
+        tagName: node.name
+      });
+    }
+    if (inlineElements.has(node.name) || node.name === "Br") {
+      for (const child of childElements) {
+        if (!inlineElements.has(child.name) && child.name !== "Br") {
+          diagnostic(options, {
+            code: "invalid_structure",
+            message: `${node.name} may only contain inline content.`,
+            tagName: node.name
+          });
+          break;
+        }
+      }
+    }
+    if (node.name === "Button" && childElements.length > 0) {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: "Button may contain text and variables, but not inline tags.",
+        tagName: node.name
+      });
+    }
+    if (node.name === "CodeBlock" && childElements.length > 0) {
+      diagnostic(options, {
+        code: "invalid_structure",
+        message: "CodeBlock content must be raw text.",
+        tagName: node.name
+      });
+    }
+    for (const child of node.children) visit(child, node.name);
+  };
+
+  for (const child of ast.children) visit(child, "root");
+  if (styleCount > 1) {
+    diagnostic(options, {
+      code: "invalid_structure",
+      message: "An LMX document may contain at most one Style tag.",
+      tagName: "Style"
+    });
+  }
 }
 
 /**

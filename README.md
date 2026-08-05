@@ -34,7 +34,9 @@ const content = await parseLoopsLmx("<Paragraph>Hello <Strong>world</Strong>.</P
 ```
 
 Unknown nodes and attributes remain in the AST. Comments are ignored and malformed content is
-recovered as far as possible. Component expansion has a finite default maximum depth of 8.
+recovered as far as possible. Semantic violations of the LMX specification are reported through
+`onDiagnostic` while the recoverable AST is retained. Component expansion has a finite default
+maximum depth of 8.
 
 ```ts
 const content = await parseLoopsLmx('<Component componentId="footer" />', {
@@ -59,7 +61,8 @@ the safe parts of that interpretation:
   LMX from the stored AST.
 - `getLoopsLmxImageWidth`, `getLoopsLmxPixels`, and `getLoopsLmxColumnsLayout` validate the
   constrained dimensions and column data before a renderer turns them into attributes or styles.
-- `resolveLoopsLmxVariables` applies to both text and string attributes.
+- `resolveLoopsLmxVariables` applies to both text and string attributes and supports the
+  documented `contact`, `event`, and `data` namespaces.
   `resolveSafeLoopsLmxUrl` resolves variables in a URL attribute before validating it.
 
 ```ts
@@ -82,9 +85,9 @@ resolveLoopsLmxVariables("Hello {contact.firstName}", variables); // "Hello Ada"
 resolveSafeLoopsLmxUrl("https://example.test/{data.invoiceId}", variables, "link");
 ```
 
-Only `contact.*` and `data.*` placeholders resolve. Links accept `https`, `http`, `mailto`, and
-`tel`; images accept `https` and `http`. Relative, protocol-relative, data, JavaScript, and other
-unsafe URLs return `null`.
+Only explicit `contact.*`, `event.*`, and `data.*` placeholders resolve. Links accept `https`,
+`http`, `mailto`, and `tel`; images accept `https` and `http`. Relative, protocol-relative, data,
+JavaScript, and other unsafe URLs return `null`.
 
 ## Verify and validate webhooks
 

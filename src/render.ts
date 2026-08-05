@@ -1,6 +1,6 @@
 import type { LoopsLmxElement, LoopsLmxNode } from "./schemas/ast";
 
-const inlineElements = new Set(["Strong", "Em", "Underline", "Code", "Link"]);
+const inlineElements = new Set(["Strong", "Em", "Underline", "Strike", "Code", "Text", "Link"]);
 const blockElements = new Set([
   "H1",
   "H2",
@@ -110,7 +110,7 @@ export function getLoopsLmxColumnsLayout(
     Math.abs(parsed.reduce((total, width) => total + width, 0) - 100) < 0.01;
   return {
     display: "grid",
-    gap: `${getLoopsLmxPixels(gap, 0, 150) ?? 24}px`,
+    gap: `${getLoopsLmxPixels(gap, 12, 150) ?? 24}px`,
     gridTemplateColumns: validWidths
       ? parsed.map((width) => `${width}fr`).join(" ")
       : `repeat(${safeColumnCount}, minmax(0, 1fr))`
