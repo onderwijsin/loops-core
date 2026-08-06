@@ -38,6 +38,10 @@ recovered as far as possible. Semantic violations of the LMX specification are r
 `onDiagnostic` while the recoverable AST is retained. Component expansion has a finite default
 maximum depth of 8.
 
+Ordered and unordered lists may nest inside list items through 12 list levels, counting the
+top-level list as level 1. Deeper nesting is retained in the AST and reported through
+`onDiagnostic` as an `invalid_structure` diagnostic.
+
 ```ts
 const content = await parseLoopsLmx('<Component componentId="footer" />', {
   apiKey: process.env.LOOPS_API_KEY,

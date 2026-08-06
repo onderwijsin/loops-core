@@ -22,6 +22,9 @@ import {
 import { diagnostic } from "./diagnostics";
 import type { ParseLoopsLmxOptions } from "./types";
 
+/** Maximum number of ordered or unordered list containers that may be nested. */
+const maxListDepth = 12;
+
 /** Reports value, variable, and context violations for documented LMX attributes. */
 function validateAttributes(node: LoopsLmxElement, options: ParseLoopsLmxOptions): void {
   Object.entries(node.attributes).forEach(([name, value]) => {
@@ -165,7 +168,7 @@ const attributeValueValidators: Record<string, (elementName: string, value: stri
 /** Reports LMX specification violations without discarding the recoverable AST. */
 export function validateLmxAst(ast: LoopsLmxAst, options: ParseLoopsLmxOptions): void {
   const styles = { count: 0 };
-  ast.children.forEach((node) => validateLmxNode(node, "root", options, styles));
+  ast.children.forEach((node) => validateLmxNode(node, "root", options, styles, 0));
   if (styles.count > 1) {
     diagnostic(options, {
       code: "invalid_structure",
@@ -180,14 +183,18 @@ function validateLmxNode(
   node: LoopsLmxNode,
   parent: string,
   options: ParseLoopsLmxOptions,
-  styles: { count: number }
+  styles: { count: number },
+  listDepth: number
 ): void {
   if (node.type === "text") return validateTextNode(node, parent, options);
-  validateElementContext(node, parent, options);
+  const currentListDepth = listDepth + (isList(node.name) ? 1 : 0);
+  validateElementContext(node, parent, options, currentListDepth);
   if (node.name === "Style") styles.count += 1;
   validateElementAttributes(node, options);
   validateElementChildren(node, options);
-  node.children.forEach((child) => validateLmxNode(child, node.name, options, styles));
+  node.children.forEach((child) =>
+    validateLmxNode(child, node.name, options, styles, currentListDepth)
+  );
 }
 
 /** Validates text placement and variable syntax. */
@@ -209,7 +216,8 @@ function validateTextNode(
 function validateElementContext(
   node: LoopsLmxElement,
   parent: string,
-  options: ParseLoopsLmxOptions
+  options: ParseLoopsLmxOptions,
+  listDepth: number
 ): void {
   if (!knownElements.has(node.name)) {
     diagnostic(options, {
@@ -226,7 +234,11 @@ function validateElementContext(
     );
   }
   validateDeclaredParent(node.name, parent, options);
-  if (inlineContentParents.has(parent) && !isInlineContent(node.name)) {
+  const nestedList = parent === "ListItem" && isList(node.name);
+  if (nestedList && listDepth > maxListDepth) {
+    reportInvalidStructure(options, `Lists may be nested up to ${maxListDepth} levels.`, node.name);
+  }
+  if (inlineContentParents.has(parent) && !isInlineContent(node.name) && !nestedList) {
     reportInvalidStructure(options, `${parent} may only contain inline content.`, parent);
   }
   if (parent === "Button" && node.name !== "Text") {
@@ -300,7 +312,12 @@ function validateElementChildren(node: LoopsLmxElement, options: ParseLoopsLmxOp
   );
   validateCollectionChildren(node, childElements, options);
   validateBlockChildren(node, childElements, options);
-  if (isInlineContent(node.name) && childElements.some((child) => !isInlineContent(child.name))) {
+  if (
+    isInlineContent(node.name) &&
+    childElements.some(
+      (child) => !isInlineContent(child.name) && !(node.name === "ListItem" && isList(child.name))
+    )
+  ) {
     reportInvalidStructure(options, `${node.name} may only contain inline content.`, node.name);
   }
   if (node.name === "Button" && childElements.length > 0)

@@ -24,6 +24,7 @@ Use this skill only to consume `@onderwijsin/loops-core`. Treat the package as a
 4. Use exported schemas at external boundaries; use `safeParse` where an invalid payload should become an application error response.
 5. Render only the supported subset, escape text, resolve variables before presentation, evaluate conditional Sections with `evaluate`, and validate every destination URL.
 6. Use `applyInlineStyles` for documented presentation attributes when the consuming framework needs inline styles; keep its `enabled` flag controlled by the renderer rather than persisted AST data.
+7. LMX ordered and unordered lists may nest inside list items through 12 list levels; deeper lists remain recoverable but produce an `invalid_structure` diagnostic.
 
 ## Boundaries and safety
 
