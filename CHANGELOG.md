@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/onderwijsin/loops-core/compare/v1.2.0...v1.3.0) (2026-08-06)
+
+
+### Features
+
+* **lmx:** Support nested lists up to twelve levels ([08eaf65](https://github.com/onderwijsin/loops-core/commit/08eaf656a5a3e5428fd6d48f4c6318322bc34eca))
+
 # [1.2.0](https://github.com/onderwijsin/loops-core/compare/v1.1.0...v1.2.0) (2026-08-05)
 
 
