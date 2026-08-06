@@ -123,6 +123,48 @@ describe("LMX parser: nesting and content grammar", () => {
 
   it.each([
     [
+      "ordered inside unordered",
+      "<UnorderedList><ListItem>outer<OrderedList><ListItem>inner</ListItem></OrderedList></ListItem></UnorderedList>"
+    ],
+    [
+      "unordered inside ordered",
+      "<OrderedList><ListItem>outer<UnorderedList><ListItem>inner</ListItem></UnorderedList></ListItem></OrderedList>"
+    ]
+  ])("accepts %s nested lists", async (_, source) => {
+    const { diagnostics } = await parseWithDiagnostics(source);
+    expect(diagnostics).toEqual([]);
+  });
+
+  it("accepts alternating ordered and unordered lists through twelve levels", async () => {
+    let nested = "<UnorderedList><ListItem>level 12</ListItem></UnorderedList>";
+    for (let level = 11; level >= 1; level -= 1) {
+      const tag = level % 2 === 0 ? "UnorderedList" : "OrderedList";
+      nested = `<${tag}><ListItem>level ${level}${nested}</ListItem></${tag}>`;
+    }
+
+    const { diagnostics } = await parseWithDiagnostics(nested);
+    expect(diagnostics).toEqual([]);
+  });
+
+  it("reports a nested list beyond twelve levels while retaining the AST", async () => {
+    let nested = "<UnorderedList><ListItem>level 13</ListItem></UnorderedList>";
+    for (let level = 12; level >= 1; level -= 1) {
+      const tag = level % 2 === 0 ? "UnorderedList" : "OrderedList";
+      nested = `<${tag}><ListItem>level ${level}${nested}</ListItem></${tag}>`;
+    }
+
+    const { ast, diagnostics } = await parseWithDiagnostics(nested);
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        code: "invalid_structure",
+        message: "Lists may be nested up to 12 levels."
+      })
+    ]);
+    expect(JSON.stringify(ast)).toContain('"name":"UnorderedList"');
+  });
+
+  it.each([
+    [
       "inline at root",
       "<Strong>bad</Strong>",
       "Strong is not allowed at the LMX document top level."

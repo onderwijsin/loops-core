@@ -25,6 +25,10 @@ const ast: LoopsLmxAst = await parseLoopsLmx(lmx, {
 
 Validate persisted AST before rendering with `loopsLmxAstSchema.safeParse`. The exported node schemas are `loopsLmxTextNodeSchema`, `loopsLmxElementSchema`, and `loopsLmxNodeSchema`.
 
+Ordered and unordered lists may nest inside list items through 12 list levels, counting the
+top-level list as level 1. A deeper list is retained in the recoverable AST and reports an
+`invalid_structure` diagnostic through `onDiagnostic`.
+
 ## Variables, URLs, and rendering utilities
 
 ```ts
